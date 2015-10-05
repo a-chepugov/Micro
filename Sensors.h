@@ -1,25 +1,24 @@
+#define PIN_SENSOR_TIP A0 //  Контакт для датчика острия
+#define PIN_SENSOR_Ptip A1 // Контакт для датчика давления укола
 #define PIN_SENSOR_T A2 // Контакт для датчика температуры
 #define PIN_SENSOR_HUMIDITY A3 // Контакт для датчика влажности
 #define PIN_SENSOR_VIBRATION A4 // Контакт для датчика вибрации
 
-
 class Sensors : 
-protected SensorsRecord {
+protected SensorsData {
 public:
   Sensors();
-  void SensorsReset(); // Сброс данных сенсоров
   void GetEnvironmentProperties(); // Получание сенсорами параметров среды
   int GetSensorsData(char Num); // Получение данных сенсоров
 }; 
 
-void Sensors::SensorsReset() { // Сброс данных сенсоров
-  for (char i = 0; i < sizeof(SensorsData) / sizeof(SensorsData[0]); i++)
+int Sensors::GetSensorsData(char SensorNum)
+{
+  if (SensorNum > sizeof(SensorsValue) / sizeof(SensorsValue[0]) )
   {
-    SensorsData[i] = 0; 
-  }; 
+    return -1;
+  }
+  return SensorsValue[SensorNum];
+ 
 };
 
-int Sensors::GetSensorsData(char Num)
-{
-  return SensorsData[Num];
-};
