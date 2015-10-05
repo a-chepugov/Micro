@@ -881,6 +881,19 @@
        <string>Траектория</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="pushButton_3">
+      <property name="geometry">
+       <rect>
+        <x>510</x>
+        <y>10</y>
+        <width>161</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Послать траекторию</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -915,7 +928,7 @@
       <property name="geometry">
        <rect>
         <x>360</x>
-        <y>30</y>
+        <y>10</y>
         <width>91</width>
         <height>24</height>
        </rect>
@@ -950,7 +963,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>30</y>
+        <y>10</y>
         <width>91</width>
         <height>24</height>
        </rect>
@@ -959,40 +972,24 @@
        <string>Открыть порт</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="pushButton_3">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>60</y>
-        <width>91</width>
-        <height>24</height>
-       </rect>
-      </property>
-      <property name="locale">
-       <locale language="English" country="UnitedStates"/>
-      </property>
-      <property name="text">
-       <string>Читать порт</string>
-      </property>
-     </widget>
      <widget class="QLineEdit" name="lineEdit">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>30</y>
-        <width>231</width>
+        <x>260</x>
+        <y>40</y>
+        <width>191</width>
         <height>23</height>
        </rect>
       </property>
       <property name="text">
-       <string>iS!!!!!!!!!!!!!!!!!</string>
+       <string>iTT!!!!!!!!!!!!!!!!!!!!!</string>
       </property>
      </widget>
      <widget class="QPushButton" name="pushButton_SendToPort">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>60</y>
+        <x>330</x>
+        <y>70</y>
         <width>121</width>
         <height>24</height>
        </rect>
@@ -1371,6 +1368,32 @@
       </property>
       <property name="orientation">
        <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="PortName">
+      <property name="geometry">
+       <rect>
+        <x>120</x>
+        <y>10</y>
+        <width>91</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>/dev/ttyACM0</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_4">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>70</y>
+        <width>91</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Читать порт</string>
       </property>
      </widget>
     </widget>

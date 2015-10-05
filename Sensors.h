@@ -3,6 +3,7 @@
 #define PIN_SENSOR_T A2 // Контакт для датчика температуры
 #define PIN_SENSOR_HUMIDITY A3 // Контакт для датчика влажности
 #define PIN_SENSOR_VIBRATION A4 // Контакт для датчика вибрации
+#define SCANNING_DEEP 100 // Количество точек сканирования
 
 enum ScanSensorsNames
 {
@@ -15,103 +16,69 @@ union SensorData // Структура данных сканирования
   {
     Coordinate X; // Параметр сканирования
     unsigned short int Fx; // Показание датчика
+    bool Direction; // Знак сканирования
   };
-  char String[];
+  char Chars[];
 
-  SensorData(Coordinate TempX = 0, int TempFx = 0)
+  SensorData(Coordinate TempX, int TempFx);
+  char & operator[](char Item);
+  char CharsLength();
+};
+
+SensorData::SensorData(Coordinate TempX = 0, int TempFx = 0)
   {
     X = TempX;
     Fx = TempFx;
+    Direction = 0;
+  };
+  
+char & SensorData::operator[](char Item)
+{
+  if (Item >= 0 && Item < CharsLength() )
+  {
+  return Chars[Item];
   }
+  else
+  {
+    ::abort(0);
+  };
+};
+
+char SensorData::CharsLength()
+{
+  return sizeof(*this) / sizeof(Chars[0]);
 };
 
 class SensorsItem
 {
-private:
-  SensorData SensorsValue[COUNT_OF_SENSORS]; // Данные датчиков
-  SensorData ScanResult[64]; // Данные датчика сканирования
+public:
+  DataArray < SensorData, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
+  DataArray < SensorData, SCANNING_DEEP > ScanResult; // Данные датчиков
 public:
   SensorsItem();
-  inline void SetSensorsValue(char SensorNum, SensorData TempSensorData); // Получение параметров сканирования
-  inline SensorData * GetSensorsValue(char SensorNum); // Получение данных сенсоров
-  inline int GetSensorsValueFx(char SensorNum); // Получение данных сенсоров
-  inline int GetSensorsValueLength(); // Получение длины массива данных сенсоров
+  void SensorsDataReset(); // Сброс данных датчиков
+  inline void GetSensorsValue(); // Получение данных датчиков  
+  inline void SetScanResult(SensorData TempSensorData); // Получение параметров сканирования
 
-  inline void SetScanResult(char ScanNum, SensorData TempSensorData); // Получание сенсорами параметров среды    
-  inline SensorData * GetScanResult(char ScanNum); // Получение данных сенсоров
-  inline int GetScanResultFx(char ScanNum); // Получение данных сенсоров
-  inline int GetScanResultLength(); // Получение длины массива данных сенсоров
-
-  inline void GetEnvironmentProperties();
 }; 
 
-void SensorsItem::SetSensorsValue(char SensorNum, SensorData TempSensorData)
+void SensorsItem::SensorsDataReset()
 {
-  if(SensorNum < (sizeof(SensorsValue)/ sizeof(SensorsValue[0])) )
-  {
-    SensorsValue[SensorNum].X = TempSensorData.X;
-    SensorsValue[SensorNum].Fx = TempSensorData.Fx;
+  for (char i = 0; i < SensorsValue.Length(); i++)
+  { 
+    SensorsValue[i] = SensorData();
+  };
+  for (char i = 0; i < ScanResult.Length(); i++)
+  { 
+    ScanResult[i] = SensorData();
   };
 };
 
-  inline SensorData * SensorsItem::GetSensorsValue(char SensorNum)
-  {
-    return &SensorsValue[SensorNum];
-  };
-  
-
-int SensorsItem::GetSensorsValueFx(char SensorNum)
+void SensorsItem::SetScanResult(SensorData TempSensorData)
 {
-  if (SensorNum < GetSensorsValueLength())
-  {
-    return SensorsValue[SensorNum].Fx;
-  }
-  else
-  {
-    return -1;
+  for (char i = ScanResult.Length() - 1; i > 0; i--)
+  { 
+    ScanResult[i] = ScanResult[i - 1];
   };
+  ScanResult[0] = SensorData(TempSensorData.X, TempSensorData.Fx);
 };
-
-int SensorsItem::GetSensorsValueLength()
-{
-  return (sizeof(SensorsValue)/sizeof(SensorsValue[0]));
-};
-
-void SensorsItem::SetScanResult(char ScanNum, SensorData TempSensorData)
-{
-  if(ScanNum < (sizeof(ScanResult)/ sizeof(ScanResult[0])) )
-  {
-    ScanResult[ScanNum].X = TempSensorData.X;
-    ScanResult[ScanNum].Fx = TempSensorData.Fx;
-  };
-};
-
-  inline SensorData * SensorsItem::GetScanResult(char ScanNum)
-  {
-    return &ScanResult[ScanNum];
-  };
-
-int SensorsItem::GetScanResultFx(char ScanNum)
-{
-  if (ScanNum < GetScanResultLength() )
-  {
-    return ScanResult[ScanNum].Fx;
-  }
-  else
-  {
-    return -1;
-  };
-};
-
-int SensorsItem::GetScanResultLength()
-{
-  return (sizeof(ScanResult) / sizeof(ScanResult[0]));
-};
-
-
-
-
-
-
-
-

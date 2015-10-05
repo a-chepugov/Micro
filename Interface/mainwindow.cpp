@@ -19,7 +19,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    LocationData Point;
+    DecartCoordinates Point;
     Point.Position[X] = ui->verticalScrollBar_Xnew->value();
     Point.Position[Y] = ui->verticalScrollBar_Ynew->value();
     Data.Fields[0].SetScanWindowRange(ui->verticalScrollBar_Xnew->value(),ui->verticalScrollBar_Xnew->value(),ui->verticalScrollBar_Ynew->value(),ui->verticalScrollBar_Ynew->value());
@@ -30,11 +30,13 @@ void MainWindow::on_pushButton_clicked()
 void MainWindow::on_pushButton_2_clicked()
 {
     ui->textEdit->insertPlainText("Openning port\n");
-    usbport = openport ();
+    usbport = openport (ui->PortName->text().toStdString().c_str());
     if (usbport == -1)
     {  // Возвращает файловый дескриптор при успехе или -1 при ошибке.
         ui->textEdit->insertPlainText("error port\n");
-        ui->textEdit->insertPlainText("open_port: Unable to open /dev/ttyACMn - ");
+        ui->textEdit->insertPlainText("open_port: Unable to open ");
+        ui->textEdit->insertPlainText(ui->PortName->text());
+        ui->textEdit->insertPlainText("\n");
     }
     ui->textEdit->insertPlainText( (char *) &usbport );
     ui->textEdit->insertPlainText( "\n" );
@@ -42,22 +44,40 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButton_3_clicked()
 {
+    unsigned long Length = Data.Fields[0].GetScanTrajectoryLength();
+    for (unsigned long i = 0; i < Length; i++)
+    {
+        writetoport (usbport, Data.CreateScanCommand(i).toStdString().c_str() );
+     };
+
 }
 
 void MainWindow::on_pushButton_4_clicked()
 {
-    ui->textEdit->insertPlainText( ui->lineEdit->displayText().toStdString().c_str() ) ;
-    const char * b;
-    b = ui->lineEdit->displayText().toStdString().c_str();
+    //in.setCodec("ISO 8859-1");
+    char buf[512];
+    if (usbport != -1)
+    {
+        readport (usbport,buf);
+        ui->textEdit->insertPlainText(buf);
+        ui->textEdit->insertPlainText( "\n" );
+    }
+    else
+    {
+        ui->textEdit->insertPlainText("Port is not open\n");
+    }
 
-    writetoport (usbport, b );
 }
 
 void MainWindow::on_pushButton_5_clicked()
 {
     Data.Fields[0].SetScanFieldRange();
-    LocationData HeadFieldLowLimit = Data.Fields[0].GetFieldLowLimit();
-    LocationData HeadFieldHighLimit = Data.Fields[0].GetFieldHighLimit();
+
+    //Data.Fields[0].ScanRange[0] = DecartPosition(1,2,3);
+    //Data.Fields[0].ScanRange[0] = DecartPosition(4,5,6);
+
+    DecartCoordinates HeadFieldLowLimit = Data.Fields[0].GetFieldLowLimit();
+    DecartCoordinates HeadFieldHighLimit = Data.Fields[0].GetFieldHighLimit();
     ui->spinBox_Xmin->setValue(HeadFieldLowLimit.Position[0]);
     ui->spinBox_Ymin->setValue(HeadFieldLowLimit.Position[1]);
     ui->spinBox_Zmin->setValue(HeadFieldLowLimit.Position[2]);
@@ -140,8 +160,8 @@ void MainWindow::on_verticalScrollBar_Znew_sliderMoved(int position)
 void MainWindow::on_pushButton_7_clicked()
 {
     Data.Fields[0].SetScanWindowRange();
-    LocationData HeadWindowLowLimit = Data.Fields[0].GetWindowLowLimit();
-    LocationData HeadWindowHighLimit = Data.Fields[0].GetWindowHighLimit();
+    DecartCoordinates HeadWindowLowLimit = Data.Fields[0].GetWindowLowLimit();
+    DecartCoordinates HeadWindowHighLimit = Data.Fields[0].GetWindowHighLimit();
     ui->spinBox_Xstart->setValue(HeadWindowLowLimit.Position[0]);
     ui->spinBox_Ystart->setValue(HeadWindowLowLimit.Position[1]);
     ui->spinBox_Zstart->setValue(HeadWindowLowLimit.Position[2]);
@@ -162,19 +182,11 @@ void MainWindow::on_spinBox_Xnew_editingFinished()
 
 void MainWindow::on_pushButton_SendToPort_clicked()
 {
-    //in.setCodec("ISO 8859-1");
-    char buf[512];
-    if (usbport != -1)
-    {
-        readport (usbport,buf);
-        ui->textEdit->insertPlainText(buf);
-        ui->textEdit->insertPlainText( "\n" );
-    }
-    else
-    {
-        ui->textEdit->insertPlainText("Port is not open\n");
-    }
+    ui->textEdit->insertPlainText( ui->lineEdit->displayText().toStdString().c_str() ) ;
+    const char * b;
+    b = ui->lineEdit->displayText().toStdString().c_str();
 
+    writetoport (usbport, b );
 }
 
 void MainWindow::on_verticalScrollBar_Xnew_valueChanged(int value)

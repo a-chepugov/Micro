@@ -1,61 +1,72 @@
 #define COMMAND_PREFIX "i" // Команда начала работы
 #define COMMAND_PREFIX_MOVE 'MM' // Код команды операции для туннельного сканирования
-#define COMMAND_PREFIX_SCANNING 'SS' // Код команды операции для туннельного сканирования
+#define COMMAND_PREFIX_SCANNING 'TT' // Код команды операции для туннельного сканирования
 #define COMMAND_PREFIX_PROFILING 'RR' // Код команды операции снятия профиля (режим профилографа)
 #define COMMAND_PREFIX_INDENTATION 'PP' // Код команды операции индентирования
 #define COMMAND_PREFIX_CALIBRATION 'CC' // Код команды операции перекалибровки устройства
-#define STATE_PREFIX_IDLE_STANDING 'Z'  // Сигнализация простоя
-#define STATE_PREFIX_WORKING 'W'  // Сигнализация работы
-#define STATE_PREFIX_OUTPUT_RESULT 'R' // Сигнализация выдачи результата
-#define STATE_PREFIX_ERROR 'E'  // Сигнализация выдачи ошибки
+
+void exit();
 
 enum CommandParametersNames // Перечень входящих параметров
 {
-  CommandName, HeadX, HeadY, HeadZ, TipX, TipY, TipZ, ScanSensor, U, Icrit, Pcrit, CSum, COUNT_OF_COMMAND_PARAMETERS  // COUNT_OF_COMMAND_PARAMETERS - Количество входящих параметров
+  CommandName, HeadX, HeadY, HeadZ, TipX, TipY, TipZ, U, Istart, Icrit, Pstart, Pcrit, ScanDeep, CSum, COUNT_OF_COMMAND_PARAMETERS  // COUNT_OF_COMMAND_PARAMETERS - Количество входящих параметров
 };
 
-union CommandParametersData // Структура команды
+union CommandData  // Структура команды
 {
-  Coordinate Item[COUNT_OF_COMMAND_PARAMETERS];
-  char String[];
-  CommandParametersData()
+    DataArray < Coordinate, COUNT_OF_COMMAND_PARAMETERS > Parameters; // Параметры команды
+    char Chars[];
+
+    CommandData();
+    char & operator[](char Item);
+    inline char CharsLength(); // Размер данных команды
+    inline void SetCSum(); // Установка контрольной суммы
+    inline bool CheckCSum(); // Проверка контрольной суммы
+};
+
+CommandData::CommandData()
+{
+  for(char i = 0; i < sizeof(*this); i++)
   {
-     for(char i = 0; i < sizeof(*this); i++)
-    {
-      this->String[i] = 0;
-    };    
-  };  
+    this->Chars[i] = '!';
+  };    
 };
 
-class CommandItem {  
-  public:
-  CommandParametersData Parameters;  
-  public:
-  void SetCSum(); // Установка контрольной суммы
-  bool CheckCSum(); // Проверка контрольной суммы
-  void SetCommandParametersUnit(char ParameterNum, char TempUnit); // Установка параметра команды
-  int GetCommandParameters(char ParameterNum); // Получение параметра команды
-  CommandItem * GetCommandDataItem(CommandItem * CommandDataItem);
+char & CommandData::operator[](char Item)
+{
+  if (Item >= 0 && Item < CharsLength() )
+  {
+  return Chars[Item];
+  }
+  else
+  {
+    ::abort(0);
+  };
 };
 
-void CommandItem::SetCSum()
+char CommandData::CharsLength()
+{
+  return sizeof(*this) / sizeof(Chars[0]);
+};
+
+void CommandData::SetCSum()
 {
   int tempCSum = 0;
   for (char i = 0; i < CSum; i++)
   {
-    tempCSum  += Parameters.Item[i];
+    tempCSum  += Parameters[i];
   };
-  Parameters.Item[CSum] = tempCSum ;
+  Parameters[CSum] = tempCSum ;
 };
 
-bool CommandItem::CheckCSum()
+bool CommandData::CheckCSum()
 {
-  int CSum = 0;
+  int TempCSum = 0;
   for (char i = 0; i < CSum; i++)
   {
-    CSum += Parameters.Item[i];
+    TempCSum += Parameters[i];
   };
-  if (CSum == Parameters.Item[CSum])
+  if (TempCSum == Parameters[CSum])
   {
     return true;
   }
@@ -63,23 +74,5 @@ bool CommandItem::CheckCSum()
   {
     return false;
   };
-};
-
-void CommandItem::SetCommandParametersUnit(char ParameterNum, char TempUnit)
-{
-  Parameters.String[ParameterNum] = TempUnit;
-};
-
-int CommandItem::GetCommandParameters(char ParameterNum)
-{
-  if (ParameterNum > sizeof(Parameters.Item) / sizeof(Parameters.Item[0]) )
-  {
-  }
-  else return Parameters.Item[ParameterNum];
-};
-
-CommandItem * CommandItem::GetCommandDataItem(CommandItem * CommandDataItem)
-{
-  return this;
 };
 

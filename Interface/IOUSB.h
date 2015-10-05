@@ -9,12 +9,12 @@
 //#include <sys/stat.h>
 
 
-int openport(void)
+int openport(const char * PortName)
 {
     int fd; /* Файловый дескриптор для порта */
     int open_port(void);
     //port_set:
-    fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY); /*'open_port()' - Открывает последовательный порт */
+    fd = open(PortName, O_RDWR | O_NOCTTY | O_NDELAY); /*'open_port()' - Открывает последовательный порт */
     if (fd == -1)
     {  // Возвращает файловый дескриптор при успехе или -1 при ошибке.
         return -1;
@@ -44,5 +44,5 @@ void writetoport (int fd, const char buf[512])
 {
     /*размер зависит от размера строки принимаемых данных*/
 //    int iOut = write(fd,buf,8); /*чтения приходящих данных из порта*/
-    write(fd,buf,8); /*чтения приходящих данных из порта*/
+    write(fd,buf,24);
 }

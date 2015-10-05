@@ -1,26 +1,27 @@
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
-#include "./../SharedData.h"
+#include "./../Coordinates.h"
 
 enum ScanTrajectoryTypes {TZ = 'Z', TN = 'N', TX = 'X', TY = 'Y'};
 
 class ScanField  { // Данные о поле сканирования
 private:
-    LocationData ScanRange[2]; // Размер поля сканирования
-    LocationData ScanWindow[2]; // Границы текущего поля сканирования
+public:
+    DecartCoordinates ScanRange[2]; // Размер поля сканирования
+    DecartCoordinates ScanWindow[2]; // Границы текущего поля сканирования
     char ScanTrajectoryType; // Вид траектории
-    std::vector<LocationData> Trajectory; // Траектория перемещения
+    std::vector<DecartCoordinates> Trajectory; // Траектория перемещения
     unsigned long ScanPosition; // Текущее положение на траектории
 public:
     ScanField();
     void SetScanFieldRange(); // Задать максимальный размер поля сканирования
-    LocationData GetFieldLowLimit(); // Получить нижний предел поля сканирования
-    LocationData GetFieldHighLimit(); // Получить верхний предел поля сканирования
+    DecartCoordinates GetFieldLowLimit(); // Получить нижний предел поля сканирования
+    DecartCoordinates GetFieldHighLimit(); // Получить верхний предел поля сканирования
     void SetScanWindowRange(); // Задать положение текущего поля сканирования
     void SetScanWindowRange(Coordinate Xmin, Coordinate Xmax, Coordinate Ymin, Coordinate Ymax); // Задать положение текущего поля сканирования
-    LocationData GetWindowLowLimit(); // Получить нижний предел окна сканирования
-    LocationData GetWindowHighLimit(); // Получить верхний предел окна сканирования
+    DecartCoordinates GetWindowLowLimit(); // Получить нижний предел окна сканирования
+    DecartCoordinates GetWindowHighLimit(); // Получить верхний предел окна сканирования
 
     void SetScanTrajectoryType(char NewScanTrajectoryType); // Задать тип траектории сканирования
     char GetScanTrajectoryType(); // Получить тип траектории сканирования
@@ -32,13 +33,11 @@ public:
     void CreateTrajectoryN();
 
     unsigned long GetScanTrajectoryLength(); // Получить длину траектории
-    LocationData GetScanTrajectoryPoint(unsigned long Point); // Получить координату траектории по точке
+    DecartCoordinates GetScanTrajectoryPoint(unsigned long Point); // Получить координату траектории по точке
 };
 
 ScanField::ScanField()
 {
-    LocationData ScanRange[] = {LocationData(), LocationData()};
-    LocationData ScanWindow[] = {LocationData(), LocationData()};
     char ScanTrajectoryType = TZ;
     Trajectory.clear();
     ScanPosition = 0;
@@ -46,18 +45,18 @@ ScanField::ScanField()
 
 void ScanField::SetScanFieldRange()
 {
-    for (int i = 0; i < sizeof(ScanRange[0].Position) / sizeof(ScanRange[0].Position[i]); i++)
+    for (int i = 0; i < ScanRange[0].PositionsNum(); i++)
     {
-        again:
-        ScanRange[0].Position[i] = rand () %50;
-        ScanRange[1].Position[i] = rand () %50;
+again:
+        ScanRange[0].Position[i] = rand () %10;
+        ScanRange[1].Position[i] = rand () %100;
         if (ScanRange[0].Position[i] == ScanRange[1].Position[i])
         {
             goto again;
         };
         if (ScanRange[0].Position[i] > ScanRange[1].Position[i])
         {
-            unsigned int temp = ScanRange[0].Position[i];
+            Coordinate temp = ScanRange[0].Position[i];
             ScanRange[0].Position[i] = ScanRange[1].Position[i];
             ScanRange[1].Position[i] = temp;
         }
@@ -65,8 +64,8 @@ void ScanField::SetScanFieldRange()
 };
 void ScanField::SetScanWindowRange()
 {
-//    SetScanFieldRange();
-    for (int i = 0; i < sizeof(ScanWindow[0].Position) / sizeof(ScanWindow[0].Position[i]); i++)
+    //    SetScanFieldRange();
+    for (int i = 0; i < ScanWindow[0].PositionsNum(); i++)
     {
         ScanWindow[0].Position[i] = rand () % (ScanRange[1].Position[i] - ScanRange[0].Position[i]) + ScanRange[0].Position[i];
         ScanWindow[1].Position[i] = rand () % (ScanRange[1].Position[i] - ScanRange[0].Position[i]) + ScanRange[0].Position[i];
@@ -88,19 +87,19 @@ void ScanField::SetScanWindowRange(Coordinate Xmin, Coordinate Xmax, Coordinate 
 };
 
 
-LocationData ScanField::GetFieldLowLimit()
+DecartCoordinates ScanField::GetFieldLowLimit()
 {
     return ScanRange[0];
 };
-LocationData ScanField::GetFieldHighLimit()
+DecartCoordinates ScanField::GetFieldHighLimit()
 {
     return ScanRange[1];
 };
-LocationData ScanField::GetWindowLowLimit()
+DecartCoordinates ScanField::GetWindowLowLimit()
 {
     return ScanWindow[0];
 };
-LocationData ScanField::GetWindowHighLimit()
+DecartCoordinates ScanField::GetWindowHighLimit()
 {
     return ScanWindow[1];
 };
@@ -129,6 +128,7 @@ setDefaultScanTrajectory:
     case TY:
     {
         CreateTrajectoryY();
+        break;
     };
     case TZ:
     {
@@ -151,11 +151,11 @@ setDefaultScanTrajectory:
 void ScanField::CreateTrajectoryX()
 {
     Trajectory.clear();
-    for (long i_y = ScanWindow[0].Position[1]; i_y <= ScanWindow[1].Position[1]; i_y++)
+    for (long i_y = ScanWindow[0].Position[Y]; i_y <= ScanWindow[1].Position[Y]; i_y++)
     {
-        for (long i_x = ScanWindow[0].Position[0]; i_x <= ScanWindow[1].Position[0]; i_x++)
+        for (long i_x = ScanWindow[0].Position[X]; i_x <= ScanWindow[1].Position[X]; i_x++)
         {
-            LocationData Point;
+            DecartCoordinates Point;
             Point.Position[X] = i_x;
             Point.Position[Y] = i_y;
             Trajectory.push_back(Point);
@@ -166,11 +166,11 @@ void ScanField::CreateTrajectoryX()
 void ScanField::CreateTrajectoryY()
 {
     Trajectory.clear();
-    for (long i_x = ScanWindow[0].Position[0]; i_x <= ScanWindow[1].Position[0]; i_x++)
+    for (long i_x = ScanWindow[0].Position[X]; i_x <= ScanWindow[1].Position[X]; i_x++)
     {
-        for (long i_y = ScanWindow[0].Position[1]; i_y <= ScanWindow[1].Position[1]; i_y++)
+        for (long i_y = ScanWindow[0].Position[Y]; i_y <= ScanWindow[1].Position[Y]; i_y++)
         {
-            LocationData Point;
+            DecartCoordinates Point;
             Point.Position[X] = i_x;
             Point.Position[Y] = i_y;
             Trajectory.push_back(Point);
@@ -182,13 +182,13 @@ void ScanField::CreateTrajectoryZ()
 {
     Trajectory.clear();
     bool Direction = true;
-    for (long i_y = ScanWindow[0].Position[1]; i_y <= ScanWindow[1].Position[1]; i_y++)
+    for (long i_y = ScanWindow[0].Position[Y]; i_y <= ScanWindow[1].Position[Y]; i_y++)
     {
         if (Direction)
         {
-            for (long i_x = ScanWindow[0].Position[0]; i_x <= ScanWindow[1].Position[0]; i_x++)
+            for (long i_x = ScanWindow[0].Position[X]; i_x <= ScanWindow[1].Position[X]; i_x++)
             {
-                LocationData Point;
+                DecartCoordinates Point;
                 Point.Position[X] = i_x;
                 Point.Position[Y] = i_y;
                 Trajectory.push_back(Point);
@@ -197,9 +197,9 @@ void ScanField::CreateTrajectoryZ()
         }
         else
         {
-            for (long i_x = ScanWindow[1].Position[0]; i_x >= ScanWindow[0].Position[0]; i_x--)
+            for (long i_x = ScanWindow[1].Position[X]; i_x >= ScanWindow[0].Position[X]; i_x--)
             {
-                LocationData Point;
+                DecartCoordinates Point;
                 Point.Position[X] = i_x;
                 Point.Position[Y] = i_y;
                 Trajectory.push_back(Point);
@@ -213,13 +213,13 @@ void ScanField::CreateTrajectoryN()
 {
     Trajectory.clear();
     bool Direction = true;
-            for (long i_x = ScanWindow[0].Position[0]; i_x <= ScanWindow[1].Position[0]; i_x++)
+    for (long i_x = ScanWindow[0].Position[X]; i_x <= ScanWindow[1].Position[X]; i_x++)
     {
         if (Direction)
         {
-    for (long i_y = ScanWindow[0].Position[1]; i_y <= ScanWindow[1].Position[1]; i_y++)
+            for (long i_y = ScanWindow[0].Position[Y]; i_y <= ScanWindow[1].Position[Y]; i_y++)
             {
-                LocationData Point;
+                DecartCoordinates Point;
                 Point.Position[X] = i_x;
                 Point.Position[Y] = i_y;
                 Trajectory.push_back(Point);
@@ -228,9 +228,9 @@ void ScanField::CreateTrajectoryN()
         }
         else
         {
-    for (long i_y = ScanWindow[1].Position[1]; i_y >= ScanWindow[0].Position[1]; i_y--)
+            for (long i_y = ScanWindow[1].Position[Y]; i_y >= ScanWindow[0].Position[Y]; i_y--)
             {
-                LocationData Point;
+                DecartCoordinates Point;
                 Point.Position[X] = i_x;
                 Point.Position[Y] = i_y;
                 Trajectory.push_back(Point);
@@ -245,7 +245,7 @@ unsigned long ScanField::GetScanTrajectoryLength()
     return Trajectory.size();
 };
 
-LocationData ScanField::GetScanTrajectoryPoint (unsigned long Point)
+DecartCoordinates ScanField::GetScanTrajectoryPoint (unsigned long Point)
 {
     return Trajectory.at(Point);
 };
