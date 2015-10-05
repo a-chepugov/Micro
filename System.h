@@ -1,5 +1,6 @@
 #ifndef System_h
 #define System_h
+//==============================================================================
 
 #define STATE_PREFIX_IDLE_STANDING 'Z'  // Сигнализация простоя
 #define STATE_PREFIX_WORKING 'W'  // Сигнализация работы
@@ -19,33 +20,31 @@ enum SystemPropertiesNames
   HeadXMax, HeadYMax, HeadZMax, TipXMax, TipYMax, TipZXMax, COUNT_OF_SYSTEM_PROPERTIES
 };
 
-union SystemData // Структура данных о системе
+class SystemData
 {
-private:  
-  struct
-  {
-    char State_; // Состояние системы
-    DataArray < bool, COUNT_OF_ERRORS > Errors_; // Статус ошибок системы
-    DataArray < char, COUNT_OF_SYSTEM_PROPERTIES > Properties_; // Свойства системы
-  };
-  char Chars[];
+  char State_; // Состояние системы
+  DataArray < char, COUNT_OF_SYSTEM_PROPERTIES > Properties_; // Свойства системы
+  DataArray < bool, COUNT_OF_ERRORS > Errors_; // Статус ошибок системы
 public:
-  SystemData();
-  inline char GetErrorSymbol(); // Получение статуса ошибки  
   inline char & State(); // Состояние системы
-  inline bool & Errors(unsigned char); // Состояние системы  
   inline char & Properties(unsigned char); // Состояние системы
-  inline char DataChar(unsigned char); // Данные в формате char
-  inline unsigned char Size(); // Размер структуры данных о системе
+  inline bool & Errors(unsigned char); // Состояние системы
+  inline char GetErrorSymbol(); // Получение статуса ошибки
 };
 
-SystemData::SystemData()
+char & SystemData::State()
 {
-  for(char i = 0; i < sizeof(*this); i++)
-  {
-    this->Chars[i] = 0;
-  };  
-  State_ = STATE_PREFIX_IDLE_STANDING;
+  return State_;
+};
+
+char & SystemData::Properties(unsigned char i)
+{
+  return Properties_[i];
+};
+
+bool & SystemData::Errors(unsigned char i)
+{
+  return Errors_[i];
 };
 
 char SystemData::GetErrorSymbol()
@@ -59,40 +58,27 @@ char SystemData::GetErrorSymbol()
   return ErrorSymbol;
 };
 
-char & SystemData::State()
+union SystemData_C // Структура данных о системе
 {
-  return State_;
+  SystemData Data;
+  DataArray < char, sizeof(SystemData)> Chars;
+
+  inline SystemData_C(char NewChar);
 };
 
-bool & SystemData::Errors(unsigned char i)
+SystemData_C::SystemData_C(char NewChar = '!')
 {
-  return Errors_[i];
-};
-
-char & SystemData::Properties(unsigned char i)
-{
-  return Properties_[i];
-};
-
-unsigned char SystemData::Size()
-{
-  return sizeof *this;
-};
-
-char SystemData::DataChar(unsigned char i)
-{
-  if (i >= 0 && i < this->Size() )
+  for(char i = 0; i < Chars.Length(); i++)
   {
-    return Chars[i];
-  }
-  else
-  {
-    ::abort();
-  };
+    this->Chars[i] = NewChar;
+  };    
+  Data.State() = STATE_PREFIX_IDLE_STANDING;
 };
 
-
+//==============================================================================
 #endif
+
+
 
 
 

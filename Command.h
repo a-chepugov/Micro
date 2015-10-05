@@ -1,5 +1,8 @@
 #ifndef Command_h
 #define Command_h
+//==============================================================================
+
+#include "SharedData.h"
 
 #define COMMAND_PREFIX "i" // Команда начала работы
 #define COMMAND_PREFIX_MOVE 'MM' // Код команды операции для туннельного сканирования
@@ -8,34 +11,24 @@
 #define COMMAND_PREFIX_INDENTATION 'PP' // Код команды операции индентирования
 #define COMMAND_PREFIX_CALIBRATION 'CC' // Код команды операции перекалибровки устройства
 
-void abort(int i);
-
 enum CommandParametersNames // Перечень входящих параметров
 {
-  CommandName, HeadX, HeadY, HeadZ, TipX, TipY, TipZ, U, Istart, Icrit, Pstart, Pcrit, ScanDeep, CSum, COUNT_OF_COMMAND_PARAMETERS  // COUNT_OF_COMMAND_PARAMETERS - Количество входящих параметров
+  CommandName, HeadX, HeadY, HeadZ, TipX, TipY, TipZ, U, Istart, Icrit, Ptipstart, Ptipcrit, Patmstart, Patmcrit, Vibrationstart, Vibrationcrit, ScanDeep, CSum, COUNT_OF_COMMAND_PARAMETERS  // COUNT_OF_COMMAND_PARAMETERS - Количество входящих параметров
 };
 
-union CommandData  // Структура команды
+class CommandData
 {
-  DataArray < Coordinate, COUNT_OF_COMMAND_PARAMETERS > Parameters; // Параметры команды
-
-private:
-  char Chars[];
+  DataArray < Coordinate, COUNT_OF_COMMAND_PARAMETERS > Items; // Параметры команды
 public:
-  CommandData();
+  inline unsigned int Length(); // Получение размера команды
   inline void SetCSum(); // Установка контрольной суммы
   inline bool CheckCSum(); // Проверка контрольной суммы
-  inline char DataToChar(unsigned char i); // Данные в формате char
-  inline char * fromChar(); // Указатель на структуру команды в формате char
-  inline unsigned char Size(); // Размер структуры данных команды
+  inline Coordinate & Item(unsigned char ItemNum); // Получение доступа к элементу
 };
 
-CommandData::CommandData()
+unsigned int CommandData::Length()
 {
-  for(char i = 0; i < sizeof(*this); i++)
-  {
-    this->Chars[i] = '!';
-  };    
+  return Items.Length();
 };
 
 void CommandData::SetCSum()
@@ -43,9 +36,9 @@ void CommandData::SetCSum()
   int tempCSum = 0;
   for (char i = 0; i < CSum; i++)
   {
-    tempCSum  += Parameters[i];
+    tempCSum  += Items[i];
   };
-  Parameters[CSum] = tempCSum ;
+  Items[CSum] = tempCSum ;
 };
 
 bool CommandData::CheckCSum()
@@ -53,9 +46,9 @@ bool CommandData::CheckCSum()
   int TempCSum = 0;
   for (char i = 0; i < CSum; i++)
   {
-    TempCSum += Parameters[i];
+    TempCSum += Items[i];
   };
-  if (TempCSum == Parameters[CSum])
+  if (TempCSum == Items[CSum])
   {
     return true;
   }
@@ -65,21 +58,32 @@ bool CommandData::CheckCSum()
   };
 };
 
-char CommandData::DataToChar(unsigned char i)
+Coordinate & CommandData::Item(unsigned char ItemNum)
 {
-  return Chars[i];
+  return Items[ItemNum];
 };
 
-char * CommandData::fromChar()
+union CommandData_C // Структура команды
 {
-  return Chars;
+  CommandData Data;
+  DataArray < char, sizeof(CommandData) > Chars;
+
+  inline CommandData_C(char NewChar);
 };
 
-unsigned char CommandData::Size()
+CommandData_C::CommandData_C(char NewChar = '!')
 {
-  return sizeof *this;
+  for(char i = 0; i < Chars.Length(); i++)
+  {
+    this->Chars[i] = NewChar;
+  };    
 };
 
-
+//==============================================================================
 #endif
+
+
+
+
+
 

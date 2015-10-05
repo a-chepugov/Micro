@@ -1,138 +1,210 @@
 #ifndef Sensors_h
 #define Sensors_h
+//==============================================================================
 
-#define PIN_SENSOR_TIP A0 //  Контакт для датчика острия
+#define PIN_SENSOR_Itip A0 //  Контакт для датчика острия
 #define PIN_SENSOR_Ptip A1 // Контакт для датчика давления укола
-#define PIN_SENSOR_T A2 // Контакт для датчика температуры
+#define PIN_SENSOR_Tatm A2 // Контакт для датчика температуры
 #define PIN_SENSOR_Patm A3 // Контакт для датчика давления окружающей среды
 #define PIN_SENSOR_HUMIDITY A4 // Контакт для датчика влажности
 #define PIN_SENSOR_VIBRATION A5 // Контакт для датчика вибрации
-#define SCANNING_DEEP 100 // Количество точек сканирования
-#define COUNT_OF_SCAN_SENSORS 1 // Сканирующие сенсоры
+#define SCANPOINTS_NUM 100 // Количество точек сканирования
 
 enum ScanSensorsNames
 {
-  Itip, Ptip, T, Patm, Humidity, Vibration, COUNT_OF_SENSORS // Перечень сенсоров
+  Itip, Ptip, COUNT_OF_SCAN_SENSORS, // Перечень сенсоров для сканирования
+  Tatm = COUNT_OF_SCAN_SENSORS, Patm, Humidity, Vibration, COUNT_OF_SENSORS, COUNT_OF_ENV_SENSORS = COUNT_OF_SENSORS - COUNT_OF_SCAN_SENSORS // Перечень сенсоров среды
 };
 
-class SensorData1  // Структура данных сенсора
+const char SensorsPins[COUNT_OF_SENSORS] = {
+  PIN_SENSOR_Itip, PIN_SENSOR_Ptip, PIN_SENSOR_Tatm, PIN_SENSOR_Patm, PIN_SENSOR_HUMIDITY, PIN_SENSOR_VIBRATION
+};
+
+//==============================================================================
+
+typedef unsigned short int SensorData;
+
+//==============================================================================
+
+class Sensor
 {
-  short int Data; // Показание датчика
-public:  
-  SensorData1(short int NewData = 0)
+  unsigned char Pin;
+public:
+  Sensor(unsigned char PinNum);
+  SensorData Value();
+};
+
+Sensor::Sensor(unsigned char PinNum = 0)
+{
+  Pin = PinNum;
+  pinMode(Pin, INPUT); // Установка режима чтения контактов сенсора острия
+};
+
+SensorData Sensor::Value()
+{
+  return analogRead(Pin);
+};
+
+class ScanSensor : 
+public Sensor
+{
+  SensorData ScanStart;
+  SensorData ScanStop;
+public:
+  ScanSensor(unsigned char PinNum, SensorData NewScanStart, SensorData NewScanStop);
+};
+
+ScanSensor::ScanSensor(unsigned char PinNum, SensorData NewScanStart, SensorData NewScanStop) : 
+Sensor(PinNum)
+{
+  ScanStart = NewScanStart;
+  ScanStop = NewScanStop;
+};
+
+
+class SensorsSystem
+{
+  DataArray < Sensor * , COUNT_OF_SCAN_SENSORS > Sensors;
+public:
+  SensorsSystem()
   {
-    Data = NewData;
+    Sensors[Itip] = new ScanSensor(11,1,1);
+    Sensors[Ptip] = new ScanSensor(0,0,0);
+    Sensors[Tatm] = new Sensor(0);
+    Sensors[Patm] = new Sensor(0);
+    Sensors[Humidity] = new Sensor(0);
+    Sensors[Vibration] = new Sensor(0);
   };
 };
 
-class SensorsData
+
+
+
+SensorsSystem SensorsSystem1;
+
+
+class EnvironmentData
 {
-  DataArray < SensorData1, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
-public:  
-  SensorsData()
-  {
-    for(unsigned char i = 0; i < SensorsValue.Length(); i++)
-    {
-    };
-    //    Data = NewData;
-  };
+  DataArray < SensorData, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
+
+public:
+  void GetEnvironmentData();
+  SensorData & Item(unsigned short int ItemNum);
+  unsigned int Length();
 };
 
-class ScanPointData
+unsigned int EnvironmentData::Length()
+{
+  return SensorsValue.Length();
+};
+
+SensorData & EnvironmentData::Item(unsigned short int ItemNum)
+{
+  return SensorsValue[ItemNum];
+};
+
+union EnvironmentData_C
+{
+  EnvironmentData Data;
+  DataArray < char, sizeof(EnvironmentData) > Chars;
+
+  EnvironmentData_C(char NewChar);   
+};
+
+EnvironmentData_C::EnvironmentData_C(char NewChar = '!')
+{
+  for(char i = 0; i < Chars.Length(); i++)
+  {
+    this->Chars[i] = NewChar;
+  };    
+};
+
+//==============================================================================
+
+struct ScanPointData
 {
   Coordinate X; // Параметр сканирования
-  DataArray < SensorData1, COUNT_OF_SCAN_SENSORS > ScanersValue; // Данные датчиков
-
-  ScanPointData(Coordinate TempX, SensorData1 TempSensorData1)
-  {
-
-  };
+  SensorData SensorValue; // Данные датчиков
 };
 
 class ScanData 
 {
-  DataArray < ScanPointData, SCANNING_DEEP > ScanValue; // Данные сканирования
+  DataArray < ScanPointData, SCANPOINTS_NUM > ScanValue; // Данные сканирования
+
+public:
+  void PushNewScanResult(Coordinate TempX, SensorData TempSensorData);
+  unsigned int Length();
+  ScanPointData & Item(unsigned short int ItemNum);
 };
 
-
-
-
-union SensorData // Структура данных сканирования
+unsigned int ScanData::Length()
 {
-  struct
-  {
-    Coordinate X; // Параметр сканирования
-    unsigned short int Fx; // Показание датчика
-    bool Direction; // Знак сканирования
+  return ScanValue.Length();
+};
+
+ScanPointData & ScanData::Item(unsigned short int ItemNum)
+{
+  return ScanValue[ItemNum];
+};
+
+void ScanData::PushNewScanResult(Coordinate TempX, SensorData TempSensorData)
+{
+  for (char i = ScanValue.Length() - 1; i > 0; i--)
+  { 
+    ScanValue[i] = ScanValue[i - 1];
   };
-  char Chars[];
+  ScanValue[0].X = TempX;
+  ScanValue[0].SensorValue = TempSensorData;
 
-  SensorData(Coordinate TempX, int TempFx);
-  char & operator[](char Item);
-  char CharsLength();
 };
 
-SensorData::SensorData(Coordinate TempX = 0, int TempFx = 0)
+union ScanData_C // Структура данных сканирования
 {
-  X = TempX;
-  Fx = TempFx;
-  Direction = 0;
+  ScanData Data;
+  DataArray < char, sizeof(ScanData) > Chars;
+
+  ScanData_C(char NewChar);   
 };
 
-char & SensorData::operator[](char Item)
+ScanData_C::ScanData_C(char NewChar = 0)
 {
-  if (Item >= 0 && Item < CharsLength() )
+  for(char i = 0; i < Chars.Length(); i++)
   {
-    return Chars[Item];
-  }
-  else
-  {
-    ::abort(0);
+    this->Chars[i] = NewChar;
   };
 };
 
-char SensorData::CharsLength()
-{
-  return sizeof(*this) / sizeof(Chars[0]);
-};
-
-struct SensorsSystemData
+//==============================================================================
+class SensorsData
 {
 public:
-  DataArray < SensorData, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
-  DataArray < SensorData, SCANNING_DEEP > ScanResult; // Данные датчиков
-public:
-  //!!!!!!!!  DataArray < char, sizeof(SensorData) * (COUNT_OF_SENSORS + SCANNING_DEEP)> Chars2;
-  SensorsSystemData();
-  void SensorsDataReset(); // Сброс данных датчиков
-  inline void GetSensorsValue(); // Получение данных датчиков  
-  inline void SetScanResult(SensorData TempSensorData); // Получение параметров сканирования
+  EnvironmentData_C Environment; // Данные датчиков
+  ScanData_C Scan; // Результат сканирования
 
-}; 
-
-void SensorsSystemData::SensorsDataReset()
-{
-  for (char i = 0; i < SensorsValue.Length(); i++)
-  { 
-    SensorsValue[i] = SensorData();
-  };
-  for (char i = 0; i < ScanResult.Length(); i++)
-  { 
-    ScanResult[i] = SensorData();
-  };
+  SensorsData ();
+  void SensorsDataReset();
 };
 
-void SensorsSystemData::SetScanResult(SensorData TempSensorData)
+void SensorsData ::SensorsDataReset()
 {
-  for (char i = ScanResult.Length() - 1; i > 0; i--)
-  { 
-    ScanResult[i] = ScanResult[i - 1];
-  };
-  ScanResult[0] = SensorData(TempSensorData.X, TempSensorData.Fx);
+  Environment = EnvironmentData_C();
+  Scan = ScanData_C();
 };
 
-
+//==============================================================================
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

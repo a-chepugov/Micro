@@ -1,51 +1,36 @@
 #ifndef Coordinates_h
 #define Coordinates_h
 
-enum Axles
+#include "SharedData.h"
+//==============================================================================
+
+enum DecartCoordinatesAxles
 {
   X, Y, Z // Синонимы для осей
 };
 
 //==========================================================
 
-union DecartCoordinates // Структура координаты
+class DecartCoordinates // Структура координаты
 {
 private:
-  DataArray < Coordinate, 3 > Position_;
+  DataArray < Coordinate, 3 > Position;
 public:
-  inline DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
-  inline Coordinate & Position(char &Axis);
-  inline Coordinate & X();
-  inline Coordinate & Y();
-  inline Coordinate & Z();
+  inline DecartCoordinates(Coordinate NewX, Coordinate NewY, Coordinate NewZ);
+  inline Coordinate & operator[](unsigned char Axis);
 };
 
-DecartCoordinates::DecartCoordinates(Coordinate TempX = '!!', Coordinate TempY = '!!', Coordinate TempZ = '!!')
+DecartCoordinates::DecartCoordinates(Coordinate NewX = 0 , Coordinate NewY = 0, Coordinate NewZ = 0)
 {
-  Position_[::X] = TempX;
-  Position_[::Y] = TempY;
-  Position_[::Z] = TempZ;    
+  Position[::X] = NewX;
+  Position[::Y] = NewY;
+  Position[::Z] = NewZ;
 };
 
-Coordinate & DecartCoordinates::Position(char &Axis)
+Coordinate & DecartCoordinates::operator[](unsigned char Axis)
 {
-  return Position_[Axis];
+  return Position[Axis];
 };
 
-Coordinate & DecartCoordinates::X()
-{
-  return Position_[::X];
-};
-
-Coordinate & DecartCoordinates::Y()
-{
-  return Position_[::Y];
-};
-
-Coordinate & DecartCoordinates::Z()
-{
-  return Position_[::Z];
-};
-
-
+//==============================================================================
 #endif

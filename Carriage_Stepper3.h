@@ -1,5 +1,6 @@
 #ifndef Carriage_StepMotor_h
 #define Carriage_StepMotor_h
+//==============================================================================
 
 #define STEPPER_X_PIN_1 2 // Контакт 1 для управления головкий по X
 #define STEPPER_X_PIN_2 3 // Контакт 2 для управления головкий по X
@@ -22,7 +23,8 @@
 
 #include <Stepper.h>
 #include "Carriage.h"
-#include "SharedData.h"
+
+//#define MOVERS_SYSTEM 3
 
 Stepper StepMotors[]= { // Изменен порядок подключения контактов с 1-2-3-4 на 1-3-2-4 (Необходимо только для двигателей 28YBJ-48 !!!
   Stepper (STEPPER_X_STEPS, STEPPER_X_PIN_1, STEPPER_X_PIN_3, STEPPER_X_PIN_2, STEPPER_X_PIN_4),
@@ -30,23 +32,26 @@ Stepper StepMotors[]= { // Изменен порядок подключения 
   Stepper (STEPPER_Z_STEPS, STEPPER_Z_PIN_1, STEPPER_Z_PIN_3, STEPPER_Z_PIN_2, STEPPER_Z_PIN_4)
   };
 
-
-class StepMotor3 : 
+class Stepper3 : 
   public Carriage
 {
+  void * Movers[]; // Система перемещения
+  Coordinate MoversPositions[]; // Текущее положение системы перемещения
 public:
-  StepMotor3();
+  Stepper3(DecartCoordinates NewDecartCoordinates);
   void MoversInitialization(); // Инициализация как системы шаговых двигателей
+
   inline void CoordinateTransformation(); // Преобразование координат
   inline void AxisMove(char AxisNum, Coordinate & CurrientCoordinate, Coordinate NewCoordinate); // Перемещение по одной оси
 };
 
-StepMotor3::StepMotor3()
+Stepper3::Stepper3(DecartCoordinates NewDecartCoordinates) :
+Carriage(NewDecartCoordinates)
 {
   MoversInitialization();
 };
 
-void StepMotor3::MoversInitialization()
+void Stepper3::MoversInitialization()
 {
   for (char i = 0; i < arraysize(StepMotors); i++)
   {
@@ -57,5 +62,8 @@ void StepMotor3::MoversInitialization()
   (*(Stepper *)Movers[Z]).setSpeed(STEPPER_Z_SPEED); // Установка скорости двигателя Z
 };
 
-
+//==============================================================================
 #endif
+
+
+

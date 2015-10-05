@@ -1,45 +1,59 @@
 #ifndef Carriage_h
 #define Carriage_h
+//==============================================================================
+
+#include "Coordinates.h"
 
 #define SAFE_HEIGHT 8000
-#define MOVERS_SYSTEM 4
 
 class Carriage {
-private:
-public:  
-  void * Movers[MOVERS_SYSTEM]; // Система перемещения
-  Coordinate MoversPositions[MOVERS_SYSTEM]; // Текущее положение системы перемещения
-  DecartCoordinates Location;
+protected:
+  DecartCoordinates Position;
+public:
+  inline Carriage(DecartCoordinates NewDecartCoordinates);
 
-  inline void Move(Coordinate TargetPosition[]); // Перемещение в новыю точку
-  virtual inline void AxisMove(char AxisNum, Coordinate & CurrientCoordinate, Coordinate NewCoordinate); // Перемещение по одной оси
-  inline Coordinate GetPosition(char axis); // Вывод положения
+  virtual void MoversInitialization() = 0; // Инициализация системы перемещения  
+  virtual void AxisMove(char AxisNum, Coordinate & CurrientCoordinate, Coordinate NewCoordinate) = 0; // Перемещение по одной оси
 
+  inline void Move(Coordinate TargetPosition[]); // Перемещение каретки в новыю точку  
+  inline void ScanMove(char AxisNum, Coordinate StepSize); // Пошаговое перемещение по одной оси  
 
-  inline void ScanMove(char AxisNum); // Пошаговое перемещение по оси Z во время сканирования
+  inline DecartCoordinates GetPosition(); // Вывод положения каретки
 };
 
-void Carriage::Move(Coordinate TargetPosition[]) {
-  if ( (Location.X() != TargetPosition[X]) // Проверка необходимости перемещания головки
-  or   (Location.Y() != TargetPosition[Y]) )
+Carriage::Carriage(DecartCoordinates NewDecartCoordinates = DecartCoordinates())
+{
+  Position = NewDecartCoordinates;
+};
+
+void Carriage::Move(Coordinate TargetPosition[])
+{
+  if ( (Position[X] != TargetPosition[X]) // Проверка необходимости перемещания головки
+  or   (Position[Y] != TargetPosition[Y]) )
   {
-    AxisMove (Z, Location.Z(), SAFE_HEIGHT); // Поднятие острия для безопасного перемещания
+    AxisMove (Z, Position[Z], SAFE_HEIGHT); // Поднятие острия для безопасного перемещания
   }; 
   for (char AxisNum = 0; AxisNum < 3 ; AxisNum++)
   {
-    if (Location.Position(AxisNum) != TargetPosition[AxisNum]) {
-      AxisMove (AxisNum, Location.Position(AxisNum), TargetPosition[AxisNum]);
+    if (Position[AxisNum] != TargetPosition[AxisNum]) {
+      AxisMove (AxisNum, Position[AxisNum], TargetPosition[AxisNum]);
     }; 
   }; 
 };
 
-Coordinate Carriage::GetPosition(char Axis) {
-  return Location.Position(Axis);
-};
-
-void Carriage::ScanMove(char AxisNum) {
-  AxisMove (AxisNum, Location.Position(AxisNum), Location.Position(AxisNum) + 1);
+void Carriage::ScanMove(char AxisNum, Coordinate StepSize)
+{
+  AxisMove (AxisNum, Position[AxisNum], Position[AxisNum] + StepSize);
 }; 
 
+DecartCoordinates Carriage::GetPosition()
+{
+  return Position;
+};
 
+//==============================================================================
 #endif
+
+
+
+

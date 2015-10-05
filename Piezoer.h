@@ -1,26 +1,33 @@
 #ifndef Piezoer_h
 #define Piezoer_h
+//==============================================================================
 
-class Piezo
+#include "SharedData.h"
+
+class Piezoer
 {
 private:
   unsigned char ControlPin;
 
 public:
-  inline Piezo(unsigned char ControlPin);
-  inline void TakePosition(unsigned char Position);
+  inline Piezoer(unsigned char ControlPin);
+  inline void GoToPosition(unsigned char Position);
 };
 
-void Piezo::TakePosition(unsigned char Position)
-{
-  analogWrite(ControlPin, Position);
-};
-
-Piezo::Piezo(unsigned char NewControlPin)
+Piezoer::Piezoer(unsigned char NewControlPin)
 {
   ControlPin = NewControlPin;
   pinMode(ControlPin, OUTPUT); // Установка режима записи контакта для управления положнием
 };
 
+void Piezoer::GoToPosition(unsigned char Position)
+{
+  if ( (Position + 128) > 0 )
+  {
+    analogWrite(ControlPin, Position + 128);
+  };
+};
 
+//==============================================================================
 #endif
+
