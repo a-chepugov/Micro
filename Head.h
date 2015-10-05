@@ -16,42 +16,24 @@
 #define HEAD_STEPPER_X_SPEED 500 // Скорость двигателя головки по X
 #define HEAD_STEPPER_Y_SPEED 500 // Скорость двигателя головки по Y
 #define HEAD_STEPPER_Z_SPEED 500 // Скорость двигателя головки по Z
-#define HEAD_AXIS_NUMBER 3  // Количество осей головки
 
-Stepper HeadSteppers[HEAD_AXIS_NUMBER]= { // Изменен порядок подключения контактов с 1-2-3-4 на 1-3-2-4 (Необходимо только для двигателей 28YBJ-48 !!!
+Stepper HeadSteppers[]= { // Изменен порядок подключения контактов с 1-2-3-4 на 1-3-2-4 (Необходимо только для двигателей 28YBJ-48 !!!
   Stepper (HEAD_STEPPER_X_STEPS, PIN_HEAD_X_1, PIN_HEAD_X_3, PIN_HEAD_X_2, PIN_HEAD_X_4),
   Stepper (HEAD_STEPPER_Y_STEPS, PIN_HEAD_Y_1, PIN_HEAD_Y_3, PIN_HEAD_Y_2, PIN_HEAD_Y_4),
   Stepper (HEAD_STEPPER_Z_STEPS, PIN_HEAD_Z_1, PIN_HEAD_Z_3, PIN_HEAD_Z_2, PIN_HEAD_Z_4)
-  }; 
+  };
 
-  Head::Head() {
-    HeadSteppers[HeadX].setSpeed(HEAD_STEPPER_X_SPEED); // Установка скорости двигателя X
-    HeadSteppers[HeadY].setSpeed(HEAD_STEPPER_Y_SPEED); // Установка скорости двигателя Y
-    HeadSteppers[HeadZ].setSpeed(HEAD_STEPPER_Z_SPEED); // Установка скорости двигателя Z
-    for (char i = 0; i < sizeof(HeadSteppers) / sizeof(HeadSteppers[0]); i++)
-    {
-      HeadPosition[i] = 8000; 
-    }; 
-  }; 
-
-void Head::HeadMove(unsigned int TargetHeadPosition[]) {
-  if ((HeadPosition[HeadX] != TargetHeadPosition[HeadX]) // Проверка необходимости перемещания головки
-  or ( HeadPosition[HeadY] != TargetHeadPosition[HeadY])) {
-    HeadAxisMove (&HeadPosition[HeadZ], 8000, HeadZ); // Поднятие острия для безопасного перемещания
-  }; 
-  for (char i = 0; i < sizeof(HeadPosition) / sizeof(HeadPosition[0]); i++)
-  {
-    if (HeadPosition[i] != TargetHeadPosition[i]) {
-      HeadAxisMove (&HeadPosition[i], TargetHeadPosition[i], i); 
-    }; 
-  }; 
+class HeadData : 
+public Scanner { //
+public:
+  HeadData();
 };
 
-void Head::HeadZMove() { // Пошаговое перемещение острия по оси Z во время сканирования
-  HeadAxisMove (&HeadPosition[HeadZ], HeadPosition[HeadZ] + 1, HeadZ); 
+HeadData::HeadData() : 
+Scanner () {
+  HeadSteppers[HeadX].setSpeed(HEAD_STEPPER_X_SPEED); // Установка скорости двигателя X
+  HeadSteppers[HeadY].setSpeed(HEAD_STEPPER_Y_SPEED); // Установка скорости двигателя Y
+  HeadSteppers[HeadZ].setSpeed(HEAD_STEPPER_Z_SPEED); // Установка скорости двигателя Z
 }; 
 
-unsigned int Head::GetHeadPosition(char axis) { // Печать положения головки
-  return HeadPosition[axis];
-}; 
 

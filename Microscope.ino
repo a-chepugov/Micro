@@ -1,12 +1,12 @@
 // Скетч для работы микроскопа
-// Версия 0.1.5
 /* TODO
  Определить возможные ошибки в процессе сканирования
-*/
+ */
 
 #include <Stepper.h>
 #include "CharToInt.h"
 #include "SharedData.h"
+#include "Scanner.h"
 #include "Head.h"
 #include "Tip.h"
 #include "Sensors.h"
@@ -14,33 +14,30 @@
 void print(char * str, char stat = '@'); 
 unsigned long checktime(unsigned long starttime = 0); 
 
-void Head::HeadAxisMove(unsigned int *currient_coordinate, unsigned int new_coordinate, int StepperNum) { // Перемещение головки по одной координате
-  print ("HeadAxisMove start"); 
+void Scanner::AxisMove(int *currient_coordinate, int new_coordinate, int AxisNum) { // Перемещение головки по одной координате
+  print ("AxisMove start");
 
-  Serial.print ("Head "); 
-  Serial.print (StepperNum); 
-  Serial.print (" : "); 
-  Serial.print (*currient_coordinate); 
-  Serial.print (" -> "); 
-  Serial.print (new_coordinate); 
-  Serial.print (" = "); 
-  Serial.print ( (int) (new_coordinate - *currient_coordinate) ); 
+  Serial.print ("Axis ");
+  Serial.print (AxisNum);
+  Serial.print (" : ");
+  Serial.print (*currient_coordinate);
+  Serial.print (" -> ");
+  Serial.print (new_coordinate);
+  Serial.print (" = ");
+  Serial.print ( (int) (new_coordinate - *currient_coordinate) );
+  HeadSteppers[AxisNum].step( (int) (new_coordinate - *currient_coordinate) );
+  *currient_coordinate = new_coordinate;
+  print ("AxisMove end");
 
-  HeadSteppers[StepperNum].step( (int) (new_coordinate - *currient_coordinate) );
-  *currient_coordinate = new_coordinate; 
-  print ("HeadAxisMove end"); 
 };
 
 //===================================================================================================
 
-Tip::Tip() {
+TipData::TipData() : 
+Scanner() {
   pinMode(PIN_SENSOR_TIP, INPUT); // Установка режима чтения контактов сенсора острия
   pinMode(PIN_SENSOR_Ptip, INPUT); // Установка режима чтения контактов сенсора давления
-  for (char i = 0; i < sizeof(TipPosition) / sizeof(TipPosition[0]); i++)
-  {
-    TipPosition[i] = 0; 
-  }; 
-}; 
+};
 
 //===================================================================================================
 
@@ -48,199 +45,225 @@ Sensors::Sensors() {
   pinMode(PIN_SENSOR_T, INPUT); // Установка режима чтения контактов сенсора температуры
   pinMode(PIN_SENSOR_HUMIDITY, INPUT); // Установка режима чтения контактов сенсора влажности
   pinMode(PIN_SENSOR_VIBRATION, INPUT); // Установка режима чтения контактов сенсора вибрации
-  SensorsReset(); 
-}; 
+  SensorsReset();
+};
 
 void Sensors::GetEnvironmentProperties() {
-  SensorsData[T] = analogRead(PIN_SENSOR_T); 
-  SensorsData[Humidity] = analogRead(PIN_SENSOR_HUMIDITY); 
-  SensorsData[Vibration] = analogRead(PIN_SENSOR_VIBRATION); 
-}; 
+  SensorsData[T] = analogRead(PIN_SENSOR_T);
+  SensorsData[Humidity] = analogRead(PIN_SENSOR_HUMIDITY);
+  SensorsData[Vibration] = analogRead(PIN_SENSOR_VIBRATION);
+};
 
 //===================================================================================================
 
-PointData::PointData() : 
-Head() , Tip() , Sensors() {
-  PointDataReset(); 
+class PointData : 
+public Sensors , private PointRecord {
+public:
+  HeadData Head;
+  TipData Tip;
+
+  PointData();
+  void PointDataReset(); // Сброс данных точки
+  void Processing(); // Ожидание команды
+  void ReadCommand(); // Получение команды
+  void CheckCommand(); // Проверка корректности комманды
+  void ExecuteCommand(); // Выполнение полученной команды
+  void MovePrepareActions(); // Перемещение в заданные координаты и снятие данных датчиков
+  void PointDataScan(); // Сканирование
+  void PointPricking(); // Операция индентирование
+  void PrintResult(); // Вывод данных операции
+  void SetState(char state); // Установка статуса
+  void SetError(char error);  // Установка статуса ошибки
+  void PrintError();  // Вывод статуса ошибки
 }; 
+
+PointData Scan = PointData(); // Объявление Объекта для работы с данными
+
+PointData::PointData() :
+Sensors() {
+  PointDataReset();
+};
 
 void PointData::PointDataReset() { // Сброс данных точки
-  State = 'i'; 
+  State = 'i';
   for (char i = 0; i < sizeof(ErrorState) / sizeof(ErrorState[0]); i++)
   {
-    ErrorState[i] = false; 
-  }; 
-  Command = '\0'; 
+    ErrorState[i] = false;
+  };
+  Command = '\0';
   for (int i = 0; i < sizeof(ScanParameters) / sizeof(ScanParameters[0]); i++)
   {
-    ScanParameters[i] = 0; 
-  }; 
+    ScanParameters[i] = 0;
+  };
   for (int i = 0; i < sizeof(I_fx) / sizeof(I_fx[0]); i++)
   {
-    I_fx[i] = -1; 
-  }; 
-  SensorsReset(); 
-}; 
+    I_fx[i] = -1;
+  };
+  SensorsReset();
+};
 
 void PointData::Processing() { // Ожидание команды
-  Serial.print ("Z"); 
+  Serial.print ("Z");
   if (Serial.find(COMMAND_PREFIX)) {
     unsigned long time = checktime(0); // Функция рассчета затраченого времени
     SetState(STATE_PREFIX_WORKING);
     ReadCommand();
     CheckCommand();
-    if (!ErrorState[BadCommand]) {
+    if ( (!ErrorState[BadCommand]) or true) {
       ExecuteCommand();
       PointDataReset();
-    }; 
+    };
     checktime(time);  // Функция рассчета затраченого времени
   }
   else {
-    SetState(STATE_PREFIX_IDLE_STANDING); 
-  }; 
-}; 
+    SetState(STATE_PREFIX_IDLE_STANDING);
+  };
+};
 
 void PointData::ReadCommand() {
-  Command = Serial.read(); 
+  Command = Serial.read();
   for (char i = 0; i < sizeof(ScanParameters) / sizeof(ScanParameters[0]); i++)
   {
-    char *temp = new char[sizeof(ScanParameters[i])]; 
-    Serial.readBytes(temp, sizeof(ScanParameters[i])); 
-    ScanParameters[i] = CharToInt(temp); 
-    delete[] temp; 
+    char *temp = new char[sizeof(ScanParameters[i])];
+    Serial.readBytes(temp, sizeof(ScanParameters[i]));
+    ScanParameters[i] = CharToInt(temp);
+    delete[] temp;
   };
 };
 
 void PointData::CheckCommand() {
-  unsigned int CCsum = 0;
-  for (char i = 0; i < sizeof(ScanParameters) / sizeof(ScanParameters[0]) - 1; i++)
-  {
-    CCsum += ScanParameters[i];
-  };
-  if(CCsum != ScanParameters[CCsum]) ErrorState[BadCommand] = true;
+  if(GetCCSum(ScanParameters) != ScanParameters[CCsum]) ErrorState[BadCommand] = true;
 };
 
 void PointData::ExecuteCommand() { // Выполнение полученной команды
-  print ("ExecuteCommand start"); 
+  print ("ExecuteCommand start");
   switch (Command) {
   case COMMAND_PREFIX_SCANNING:
-    MovePrepareActions(); 
-    PointDataScan(); 
-    PrintResult(); 
-    break; 
+    MovePrepareActions();
+    PointDataScan();
+    PrintResult();
+    break;
   case COMMAND_PREFIX_PRICKING:
-    MovePrepareActions(); 
-    // PointPricking(); 
-    break; 
+    MovePrepareActions();
+    // PointPricking();
+    break;
   default:
-    SetState(STATE_PREFIX_IDLE_STANDING); 
-  }; 
-  print ("ExecuteCommand end"); 
-}; 
+    SetState(STATE_PREFIX_IDLE_STANDING);
+  };
+  print ("ExecuteCommand end");
+};
 
 void PointData::MovePrepareActions () {
-  print("MovePrepareActions start"); 
+  print("MovePrepareActions start");
 
-  print ("HeadMove start"); 
-  HeadMove(&ScanParameters[0]); 
-  print ("HeadMove end"); 
-
-  TipMove(&ScanParameters[3]); 
-  GetEnvironmentProperties(); 
-  print ("MovePrepareActions end"); 
-}; 
+  print ("HeadMove start");
+  Head.Move(&ScanParameters[0]);
+  print ("HeadMove end");
+  print ("TipMove start");
+  Tip.Move(&ScanParameters[3]);
+  print ("TipMove end");
+  GetEnvironmentProperties();
+  print ("MovePrepareActions end");
+};
 
 void PointData::PointDataScan() {
-  print("PointDataScan start"); 
+  print("PointDataScan start");
   for (int i = 0; i < sizeof(I_fx) / sizeof(I_fx[0]); i++)
   {
-    print ("HeadZMove start"); 
-    HeadZMove(); 
-    print ("HeadZMove end"); 
-    I_fx[i] = analogRead(PIN_SENSOR_TIP); 
+    print ("HeadScanMove start");
+    Head.ScanMove();
+    print ("HeadScanMove end");
+    I_fx[i] = analogRead(PIN_SENSOR_TIP);
     if (! (I_fx[i] < ScanParameters[Icrit])) {
       Serial.print ("Overcurrent\n");
-      break; 
-    }; 
-  }; 
-  print ("PointDataScan end"); 
-}; 
+      break;
+    };
+  };
+  print ("PointDataScan end");
+};
 
 void PointData::PointPricking(){ // Операция индентирование
-  print("PointPricking start"); 
+  print("PointPricking start");
   while (analogRead(PIN_SENSOR_Ptip) < ScanParameters[Pcrit])
   {
-    HeadZMove(); 
+    Head.ScanMove();
     // Установить проверку положения острия (Если максимально возможное - вывести ошибку)
-  }; 
-  print ("PointPricking end"); 
-}; 
+  };
+  print ("PointPricking end");
+};
 
 void PointData::PrintResult() { // Вывод данных операции
-  print ("PrintResult start"); 
-  print ("-----------------------------------------------------------------------------------------------------"); 
-  SetState (STATE_PREFIX_OUTPUT_RESULT); 
+  print ("PrintResult start");
+  print ("-----------------------------------------------------------------------------------------------------",'[');
+  SetState (STATE_PREFIX_OUTPUT_RESULT);
 
-  Serial.print("\nScanState : "); 
-  Serial.print(State); 
-  Serial.print("\nError : "); 
-  PrintError(); 
-  Serial.print("\nCommand : "); 
-  Serial.print(Command); 
-  Serial.print("\nScan Parameters : "); 
+  Serial.print("\nScanState  : ");
+  Serial.print(State);
+  Serial.print("\nError      : ");
+  PrintError();
+  Serial.print("\nCommand    : ");
+  Serial.print(Command);
+  Serial.print("\nParameters : ");
   for (int i = 0; i < sizeof(ScanParameters) / sizeof(ScanParameters[0]); i++)
   {
-    Serial.print(ScanParameters[i]); 
-    Serial.print(" / "); 
-  }; 
-  Serial.print("\nHead Position : "); 
+    Serial.print(ScanParameters[i]);
+    Serial.print(" / ");
+  };
+  Serial.print("\nHead Pos   : ");
   for (int i = 0; i < 3; i++)
   {
-    GetHeadPosition(i); 
+    Serial.print(Head.GetPosition(i));
+      Serial.print(" / ");
   };
-  Serial.print("\nTip Position : "); 
+  Serial.print("\nTip  Pos   : ");
   for (int i = 0; i < 3; i++)
   {
-    GetTipPosition(i); 
+    Serial.print(Tip.GetPosition(i));
+    Serial.print(" / ");
   };
-  Serial.print("\nSensors Data : "); 
+  Serial.print("\nSensors    : ");
   for (int i = 0; i < COUNT_OF_SENSORS; i++)
   {
-    GetSensorsData(i);
+    Serial.print(GetSensorsData(i));
+    Serial.print(" / ");
   };
 
-  Serial.print("\nI_fx : "); 
+  Serial.print("\nI_fx       : ");
   for (int i = 0; i < sizeof(I_fx) / sizeof(I_fx[0]); i++)
   {
-    Serial.print(I_fx[i]); 
-    Serial.print(" / "); 
-  }; 
-  print ("-----------------------------------------------------------------------------------------------------"); 
-  print("PrintResult end"); 
-}; 
+    Serial.print(I_fx[i]);
+    Serial.print(" / ");
+  };
+  print ("-----------------------------------------------------------------------------------------------------");
+  print("PrintResult end");
+};
 
 void PointData::SetState(char state) {
-  State = state; 
-}; 
+  State = state;
+};
 
-void PointData::SetError(char i) {
-  ErrorState[i] = true; 
-}; 
+void PointData::SetError(char error) {
+  if (error > sizeof(ErrorState) / sizeof(ErrorState[0]) )
+  {
+  }
+  else
+  {
+  ErrorState[error] = true;
+  }
+};
 
 void PointData::PrintError() {
-  char ErrorSymbol = 0; 
+  char ErrorSymbol = 0;
   for (char i = 0; i < sizeof(ErrorState) / sizeof(ErrorState[0]); i++)
   {
-    ErrorSymbol = ErrorSymbol + ErrorState[i]^2; 
+    ErrorSymbol = ErrorSymbol + ErrorState[i]^2;
   };
   if (ErrorSymbol) {
     Serial.print(ErrorSymbol);
   }
   else Serial.print("OK");
-}; 
+};
 
-
-PointData Scan = PointData(); // Объявление Объекта для работы с данными
 
 void setup() {
   Serial.begin(57600); // Устанавливаем последовательное соединение
@@ -285,4 +308,5 @@ void print(char * str, char stat)
     break; 
   }; 
 };
+
 
