@@ -3,7 +3,8 @@
 
 template <typename T, size_t N>
 char (&ArraySizeHelper(T (&array)[N]))[N];
-#define arraylength(array) (sizeof(ArraySizeHelper(array)))
+#define arraysize(array) (sizeof(ArraySizeHelper(array)))
+
 
 void abort(int ErrorNum); 
 
@@ -11,7 +12,7 @@ template <typename TTypeName, unsigned char TArrayLength> struct DataArray
 {
   TTypeName Array[TArrayLength];
 
-  inline TTypeName & operator[](char Item)
+  TTypeName & operator[](char Item)
   {
     if (Item >= 0 && Item < TArrayLength )
     {
@@ -23,19 +24,25 @@ template <typename TTypeName, unsigned char TArrayLength> struct DataArray
     };
   };
 
-  inline int Length()
+  int Size()
   {
-    return arraylength(Array);
+    return arraysize(Array);
+  };
+
+  int Length()
+  {
+    return TArrayLength;
   };
 };
 
-
-typedef short int Coordinate; // Тип переменной для хранения координаты
-
+typedef unsigned short int Coordinate; // Тип переменной для хранения координаты
 
 enum
 {
-  ScanStart, ScanEnd  // Синонимы положения
+  Min, Max  // Синонимы положения
 };
 
+
 #endif
+
+

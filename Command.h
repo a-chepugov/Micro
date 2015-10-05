@@ -17,14 +17,17 @@ enum CommandParametersNames // Перечень входящих парамет�
 
 union CommandData  // Структура команды
 {
-    DataArray < Coordinate, COUNT_OF_COMMAND_PARAMETERS > Parameters; // Параметры команды
-    char Chars[];
+  DataArray < Coordinate, COUNT_OF_COMMAND_PARAMETERS > Parameters; // Параметры команды
 
-    CommandData();
-    char & operator[](char Item);
-    inline char CharsLength(); // Размер данных команды
-    inline void SetCSum(); // Установка контрольной суммы
-    inline bool CheckCSum(); // Проверка контрольной суммы
+private:
+  char Chars[];
+public:
+  CommandData();
+  inline void SetCSum(); // Установка контрольной суммы
+  inline bool CheckCSum(); // Проверка контрольной суммы
+  inline char DataToChar(unsigned char i); // Данные в формате char
+  inline char * fromChar(); // Указатель на структуру команды в формате char
+  inline unsigned char Size(); // Размер структуры данных команды
 };
 
 CommandData::CommandData()
@@ -33,23 +36,6 @@ CommandData::CommandData()
   {
     this->Chars[i] = '!';
   };    
-};
-
-char & CommandData::operator[](char Item)
-{
-  if (Item >= 0 && Item < CharsLength() )
-  {
-  return Chars[Item];
-  }
-  else
-  {
-    ::abort(0);
-  };
-};
-
-char CommandData::CharsLength()
-{
-  return sizeof(*this) / sizeof(Chars[0]);
 };
 
 void CommandData::SetCSum()
@@ -79,4 +65,21 @@ bool CommandData::CheckCSum()
   };
 };
 
+char CommandData::DataToChar(unsigned char i)
+{
+  return Chars[i];
+};
+
+char * CommandData::fromChar()
+{
+  return Chars;
+};
+
+unsigned char CommandData::Size()
+{
+  return sizeof *this;
+};
+
+
 #endif
+

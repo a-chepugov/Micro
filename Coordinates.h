@@ -6,89 +6,46 @@ enum Axles
   X, Y, Z // Синонимы для осей
 };
 
-union DecartCoordinates2 // Структура координаты
-{
-private:
-  struct
-  {
-    //    Coordinate X, Y, Z;
-  };
-  DataArray < Coordinate, 3 > Position_;
-  char Chars[];
-public:
-  DecartCoordinates2();
-  DecartCoordinates2(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
-  char & operator[](unsigned char  Item);
-  inline char CharsLength();
-
-  Coordinate & Position(char &PositionNum)
-  {
-    return Position_[PositionNum];
-  };
-
-  Coordinate & X()
-  {
-    return Position_[::X];
-  };
-
-  Coordinate & Y()
-  {
-    return Position_[::Y];
-  };
-
-  Coordinate & Z()
-  {
-    return Position_[::Z];
-  };
-
-};
+//==========================================================
 
 union DecartCoordinates // Структура координаты
 {
-  struct
-  {
-    Coordinate X, Y, Z;
-  };
-  DataArray < Coordinate, 3 > Position;
-  char Chars[];
-
-  DecartCoordinates();
-  DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
-  char & operator[](unsigned char  Item);
-  inline char CharsLength();
+private:
+  DataArray < Coordinate, 3 > Position_;
+public:
+  inline DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
+  inline Coordinate & Position(char &Axis);
+  inline Coordinate & X();
+  inline Coordinate & Y();
+  inline Coordinate & Z();
 };
 
-DecartCoordinates::DecartCoordinates()
+DecartCoordinates::DecartCoordinates(Coordinate TempX = '!!', Coordinate TempY = '!!', Coordinate TempZ = '!!')
 {
-  for(unsigned char i = 0; i < sizeof(*this); i++)
-  {
-    this->Chars[i] = '!';
-  };
+  Position_[::X] = TempX;
+  Position_[::Y] = TempY;
+  Position_[::Z] = TempZ;    
 };
 
-DecartCoordinates::DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordinate TempZ)
+Coordinate & DecartCoordinates::Position(char &Axis)
 {
-  X = TempX;
-  Y = TempY;
-  Z = TempZ;
+  return Position_[Axis];
 };
 
-char & DecartCoordinates::operator[](unsigned char Item)
+Coordinate & DecartCoordinates::X()
 {
-  if (Item >= 0 and Item < CharsLength() )
-  {
-    return Chars[Item];
-  }
-  else
-  {
-    ::abort(0);
-  };
+  return Position_[::X];
 };
 
-char DecartCoordinates::CharsLength()
+Coordinate & DecartCoordinates::Y()
 {
-  return sizeof(*this) / sizeof(Chars[0]);
+  return Position_[::Y];
 };
+
+Coordinate & DecartCoordinates::Z()
+{
+  return Position_[::Z];
+};
+
 
 #endif
-

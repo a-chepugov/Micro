@@ -1,4 +1,8 @@
 // Разработать переносимую модель данных (набор функции для доступа и обработки данных)
+#define PRINT_TECHNICAL_MESSAGES
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+#endif
 
 void abort(int ErrorNum)
 {
@@ -9,6 +13,7 @@ void abort(int ErrorNum)
     break;
   default:
     Serial.print ("Unknown Error");
+    break;
   };
   Serial.print ('\n');
   abort();
@@ -21,6 +26,7 @@ void abort(int ErrorNum)
 #include "Command.h"
 #include "System.h"
 #include "Carriage.h"
+#include "Piezoer.h"
 #include "Carriage_Piezo.h"
 #include "Carriage_StepMotor.h"
 
@@ -29,19 +35,48 @@ unsigned long checktime(unsigned long starttime = 0);
 
 //===================================================================================================
 
-void Carriage::AxisMove(char AxisNum, Coordinate & currient_coordinate, Coordinate new_coordinate) { 
-  //  print ("AxisMove start");
+void StepMotor3::AxisMove(char AxisNum, Coordinate & CurrientCoordinate, Coordinate NewCoordinate) { 
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("HeadMove start");
+#endif
+
   Serial.print ("\nAxis ");
   Serial.print (int(AxisNum));
   Serial.print (" : ");
-  Serial.print (currient_coordinate);
+  Serial.print (CurrientCoordinate);
   Serial.print (" -> ");
-  Serial.print (new_coordinate);
+  Serial.print (NewCoordinate);
   Serial.print (" = ");
-  Serial.print ( (int) (new_coordinate - currient_coordinate) );
-  (*(Stepper *)Movers[AxisNum]).step( (int) (new_coordinate - currient_coordinate) );
-  currient_coordinate = new_coordinate;
-  //  print ("AxisMove end");
+  Serial.print ( (int) (NewCoordinate - CurrientCoordinate) );
+  (*(Stepper *)Movers[AxisNum]).step( (int) (NewCoordinate - CurrientCoordinate) );
+  CurrientCoordinate = NewCoordinate;
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("HeadMove end");
+#endif
+};
+
+void Piezo3::AxisMove(char AxisNum, Coordinate & CurrientCoordinate, Coordinate NewCoordinate)
+{
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("TipMove start");
+#endif
+
+  Serial.print ("\nAxis ");
+  Serial.print (int(AxisNum));
+  Serial.print (" : ");
+  Serial.print (CurrientCoordinate);
+  Serial.print (" -> ");
+  Serial.print (NewCoordinate);
+  Serial.print (" = ");
+  Serial.print ( (int) (NewCoordinate - CurrientCoordinate) );
+  (*(Piezo *)Movers[AxisNum]).TakePosition( NewCoordinate );
+  CurrientCoordinate = NewCoordinate;
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("TipMove end");
+#endif
 };
 
 //===================================================================================================
@@ -51,6 +86,7 @@ SensorsSystemData::SensorsSystemData()
   pinMode(PIN_SENSOR_TIP, INPUT); // Установка режима чтения контактов сенсора острия
   pinMode(PIN_SENSOR_Ptip, INPUT); // Установка режима чтения контактов сенсора давления
   pinMode(PIN_SENSOR_T, INPUT); // Установка режима чтения контактов сенсора температуры
+  pinMode(PIN_SENSOR_Patm, INPUT); // Установка режима чтения контактов сенсора давления окружающей среды
   pinMode(PIN_SENSOR_HUMIDITY, INPUT); // Установка режима чтения контактов сенсора влажности
   pinMode(PIN_SENSOR_VIBRATION, INPUT); // Установка режима чтения контактов сенсора вибрации
 };
@@ -60,6 +96,7 @@ void SensorsSystemData::GetSensorsValue() {
   SensorsValue[Itip].Fx = analogRead(PIN_SENSOR_TIP);
   SensorsValue[Ptip].Fx = analogRead(PIN_SENSOR_Ptip);
   SensorsValue[T].Fx = analogRead(PIN_SENSOR_T);
+  SensorsValue[Patm].Fx = analogRead(PIN_SENSOR_Patm);
   SensorsValue[Humidity].Fx = analogRead(PIN_SENSOR_HUMIDITY);
   SensorsValue[Vibration].Fx = analogRead(PIN_SENSOR_VIBRATION);
 };
@@ -67,10 +104,11 @@ void SensorsSystemData::GetSensorsValue() {
 //===================================================================================================
 
 class MasterRecord {
+private:
   SystemData System; // Системные данные
   CommandData Command; // Данные команды
   SensorsSystemData Sensors; // Данные сенсоров
-  DataArray < Carriage, 2 > Carriages; // Массив суппортов
+  DataArray < Carriage *, 2 > Carriages; // Массив суппортов
 public:
   MasterRecord();
   inline void Processing(); // Ожидание команды
@@ -78,14 +116,17 @@ public:
   inline void CheckCommand(); // Проверка корректности комманды
   inline void ExecuteCommand(); // Выполнение полученной команды
 
+  inline void MoveToPoint(Coordinate TargetPosition[]); // Безусловное перемещение в новую точку
+  inline void MoveToPointSafe(Coordinate TargetPosition[]); // Безопасное перемещение в новую точку
+  inline void SafeAxisMove(char AxisNum, bool ReverseMoveDirection); // Подведение к образцу
   inline void MovePrepareActions(); // Перемещение в заданные координаты и снятие данных датчиков
-  inline bool SafetyCheck(bool Position); // Проверка безопасности для острия
+  inline bool SafetyCheck(bool Position); // Проверка безопасности для острия  
   inline bool CanContinueScan(); // Проверка возможности дальнейшего сканирования
-  inline void SafeMove(Coordinate TargetPosition[]); // Безопсное Перемещение в новыю точку
-  inline void Approach(char AxisNum, bool ReverseMoveDirection); // Подведение к образцу;
-  inline void SystemDataScan(); // Сканирование
 
+  
+  inline void SystemDataScan(); // Сканирование
   inline void PointPricking(); // Операция индентирование
+
   inline void PrintResult(); // Вывод данных операции
   inline void PrintFullResult(); // Вывод данных операции
   inline void PrintSystemIdle(); // Вывод состояния системы во время простоя
@@ -93,41 +134,41 @@ public:
 
 MasterRecord::MasterRecord() :
 Sensors()  {
-  Carriages[0] = Carriage('S');
-  Carriages[1] = Carriage('P');
+  *Carriages[0] = StepMotor3();
+  *Carriages[1] = Piezo3();
 };
 
 void MasterRecord::Processing() {
   unsigned long time = checktime(0); // Функция рассчета затраченого времени  
   Sensors.GetSensorsValue();
   if (Serial.find(COMMAND_PREFIX)) {
-    System.State = STATE_PREFIX_WORKING;
+    System.State() = STATE_PREFIX_WORKING;
     ReadCommand();
     CheckCommand();
-    if ( !System.Errors[BadCommand] or true) {
+    if ( !System.Errors(BadCommand) or true) {
       ExecuteCommand();
       SystemData();
     };
   }
   else {
-    System.State = STATE_PREFIX_IDLE_STANDING ;
+    System.State() = STATE_PREFIX_IDLE_STANDING ;
     PrintSystemIdle();
   };
   checktime(time); // Функция рассчета затраченого времени  
 };
 
 void MasterRecord::ReadCommand() {
-  Serial.readBytes(Command.Chars, sizeof(Command));
+  Serial.readBytes(Command.fromChar(), Command.Size());
 };
 
 void MasterRecord::CheckCommand() {
   if(!Command.CheckCSum()) 
   {
-    System.Errors[BadCommand];
+    System.Errors(BadCommand) = true;
   };
 };
 
-inline void MasterRecord::SafeMove(Coordinate TargetPosition[]) {
+inline void MasterRecord::MoveToPointSafe(Coordinate TargetPosition[]) {
 };
 
 inline bool MasterRecord::SafetyCheck(bool Position) {
@@ -157,19 +198,22 @@ inline bool MasterRecord::CanContinueScan()
   };
 };
 
-inline void MasterRecord::Approach(char AxisNum, bool ReverseMoveDirection) {
+inline void MasterRecord::SafeAxisMove(char AxisNum, bool ReverseMoveDirection) {
   for(Coordinate i = 0; i < 256 ^ sizeof(Coordinate); i++)
   {
-    if( !(SafetyCheck(ScanStart)) )
+    if( !(SafetyCheck(Max)) )
     {
       break;
     };
-    Carriages[0].AxisMove (AxisNum, Carriages[0].Location.Position[AxisNum], Carriages[0].Location.Position[AxisNum] + 1 - 2 * ReverseMoveDirection);
+    Carriages[0]->AxisMove (AxisNum, Carriages[0]->Location.Position(AxisNum), Carriages[0]->Location.Position(AxisNum) + 1 - 2 * ReverseMoveDirection);
   }; 
 };
 
 void MasterRecord::ExecuteCommand() {
-  //  print ("ExecuteCommand start");
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("ExecuteCommand start");
+#endif
+
   switch (Command.Parameters[CommandName]) {
   case COMMAND_PREFIX_MOVE:
     MovePrepareActions();
@@ -199,58 +243,75 @@ void MasterRecord::ExecuteCommand() {
     PrintFullResult();
     break;
   default:
-    System.State = STATE_PREFIX_IDLE_STANDING;
+    System.State() = STATE_PREFIX_IDLE_STANDING;
   };
-  //  print ("ExecuteCommand end");
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("ExecuteCommand end");
+#endif
+
 };
 
 void MasterRecord::MovePrepareActions () {
-  //  print("MovePrepareActions start");
-  //  print ("CarriagesMove start");
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print("MovePrepareActions start");
+  print ("CarriagesMove start");
+#endif
+
+
   for (char i = 0; i < 1; i++)
   {
     print ("Carriage[", '[');
     Serial.print (int(i));
     Serial.print ("]\n");
-    Carriages[i].Move(&(Command.Parameters[HeadX + 3 * i]));
+    Carriages[i]->Move(&(Command.Parameters[HeadX + 3 * i]));
   };
-  //  print ("CarriagesMove end");
-  //  print ("MovePrepareActions end");
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("CarriagesMove end");
+  print ("MovePrepareActions end");
+#endif
+
 };
 
 void MasterRecord::SystemDataScan() {
-  //  print("SystemDataScan start");
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print("SystemDataScan start");
+#endif
+
   for (int i = 0; i < Sensors.ScanResult.Length(); i++)
   {
     //    print ("HeadScanMove start");
-    Carriages[0].ScanMove(Z);
+    Carriages[0]->ScanMove(Z);
     //    print ("HeadScanMove end");
 
-    //    Sensors.SetScanResult(i, SensorData(Carriages[0].GetPosition(Z), analogRead(PIN_SENSOR_TIP)));
-    Sensors.SetScanResult(SensorData(Carriages[0].GetPosition(Z), analogRead(PIN_SENSOR_TIP)));
+    //    Sensors.SetScanResult(i, SensorData(*Carriages[0].GetPosition(Z), analogRead(PIN_SENSOR_TIP)));
+    Sensors.SetScanResult(SensorData(Carriages[0]->GetPosition(Z), analogRead(PIN_SENSOR_TIP)));
     if ( !CanContinueScan() ) {
       break;
     };
   };
-  //  print ("SystemDataScan end");
+
+#ifdef PRINT_TECHNICAL_MESSAGES
+  print ("SystemDataScan end");
+#endif
+
 };
 
 void MasterRecord::PointPricking(){
-  //  print("PointPricking start");
   while (analogRead(PIN_SENSOR_Ptip) < Command.Parameters[Pcrit])
   {
-    Carriages[0].ScanMove(Z);
+    Carriages[0]->ScanMove(Z);
   };
-  //  print ("PointPricking end");
 };
 
 void MasterRecord::PrintResult() { // Вывод данных операции
-  //  print ("PrintResult start");
   print ("-----------------------------------------------------------------------------------------------------",'[');
-  System.State = STATE_PREFIX_OUTPUT_RESULT;
+  System.State() = STATE_PREFIX_OUTPUT_RESULT;
 
   Serial.print("\nScanState  : ");
-  Serial.print(System.State);
+  Serial.print(System.State());
   Serial.print("\nError      : ");
   Serial.print(System.GetErrorSymbol());
   Serial.print("\nCommand    : ");
@@ -273,17 +334,15 @@ void MasterRecord::PrintResult() { // Вывод данных операции
     Serial.print(Sensors.ScanResult[i].Fx);
     Serial.print(" / ");
   };
-  //  print("PrintResult end");
 };
 
 void MasterRecord::PrintFullResult() {
-  //  print ("PrintFullResult start");
   print ("-----------------------------------------------------------------------------------------------------");
   CommandData *TempCommandParametersData;
   TempCommandParametersData = (CommandData *)(& Command);
   for (unsigned int i = 0; i < sizeof(CommandData); i++ )
   {
-    Serial.write(TempCommandParametersData->Chars[i]);
+    Serial.write(TempCommandParametersData->DataToChar(i));
   };
   TempCommandParametersData = 0;
   SensorData *TempSensorData;
@@ -304,17 +363,16 @@ void MasterRecord::PrintFullResult() {
     };
   };
   TempSensorData = 0;
-  System.State = STATE_PREFIX_OUTPUT_RESULT;
-  //  print ("PrintFullResult end");
+  System.State() = STATE_PREFIX_OUTPUT_RESULT;
 };
 
 void MasterRecord::PrintSystemIdle() {
   Serial.write('\n');
   SystemData *TempSystemData;
   TempSystemData = (SystemData *)(& System);
-  for (unsigned int i = 0; i < sizeof(SystemData); i++ )
+  for (unsigned int i = 0; i < TempSystemData->Size(); i++ )
   {
-    Serial.write(TempSystemData->Chars[i]);
+    Serial.write(TempSystemData->DataChar(i));
   };
   TempSystemData = 0;
   SensorData *TempSensorData;
@@ -327,7 +385,7 @@ void MasterRecord::PrintSystemIdle() {
     };
   };
   TempSensorData = 0;
-  System.State = STATE_PREFIX_OUTPUT_RESULT;
+  System.State() = STATE_PREFIX_OUTPUT_RESULT;
 };
 
 MasterRecord System = MasterRecord(); // Объявление Объекта для работы с данными
@@ -374,4 +432,3 @@ void print(char * str, char stat)
     break; 
   };
 };
-

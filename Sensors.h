@@ -4,19 +4,20 @@
 #define PIN_SENSOR_TIP A0 //  Контакт для датчика острия
 #define PIN_SENSOR_Ptip A1 // Контакт для датчика давления укола
 #define PIN_SENSOR_T A2 // Контакт для датчика температуры
-#define PIN_SENSOR_HUMIDITY A3 // Контакт для датчика влажности
-#define PIN_SENSOR_VIBRATION A4 // Контакт для датчика вибрации
+#define PIN_SENSOR_Patm A3 // Контакт для датчика давления окружающей среды
+#define PIN_SENSOR_HUMIDITY A4 // Контакт для датчика влажности
+#define PIN_SENSOR_VIBRATION A5 // Контакт для датчика вибрации
 #define SCANNING_DEEP 100 // Количество точек сканирования
 #define COUNT_OF_SCAN_SENSORS 1 // Сканирующие сенсоры
 
 enum ScanSensorsNames
 {
-  Itip, Ptip, T, Humidity, Vibration, COUNT_OF_SENSORS // Перечень сенсоров
+  Itip, Ptip, T, Patm, Humidity, Vibration, COUNT_OF_SENSORS // Перечень сенсоров
 };
 
 class SensorData1  // Структура данных сенсора
 {
-short int Data; // Показание датчика
+  short int Data; // Показание датчика
 public:  
   SensorData1(short int NewData = 0)
   {
@@ -26,14 +27,14 @@ public:
 
 class SensorsData
 {
-    DataArray < SensorData1, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
+  DataArray < SensorData1, COUNT_OF_SENSORS > SensorsValue; // Данные датчиков
 public:  
   SensorsData()
   {
     for(unsigned char i = 0; i < SensorsValue.Length(); i++)
     {
     };
-//    Data = NewData;
+    //    Data = NewData;
   };
 };
 
@@ -41,16 +42,16 @@ class ScanPointData
 {
   Coordinate X; // Параметр сканирования
   DataArray < SensorData1, COUNT_OF_SCAN_SENSORS > ScanersValue; // Данные датчиков
-  
+
   ScanPointData(Coordinate TempX, SensorData1 TempSensorData1)
   {
-    
+
   };
 };
 
 class ScanData 
 {
-   DataArray < ScanPointData, SCANNING_DEEP > ScanValue; // Данные сканирования
+  DataArray < ScanPointData, SCANNING_DEEP > ScanValue; // Данные сканирования
 };
 
 
@@ -130,6 +131,8 @@ void SensorsSystemData::SetScanResult(SensorData TempSensorData)
   ScanResult[0] = SensorData(TempSensorData.X, TempSensorData.Fx);
 };
 
+
 #endif
+
 
 
