@@ -2,18 +2,18 @@
 
 class Carriage : 
 public LocationData {
-  private:
+private:
   void * Movers[4]; // Система перемещения
-  Coordinate MoversPosition[4]; // Текущее положение системы перемещения
+  Coordinate MoversPosition[3]; // Текущее положение системы перемещения
 public:
   Carriage();
   Carriage(char MoversType);
-  void Move(int TargetPosition[]); // Перемещение в новыю точку
-  void CoordinateTransformation(); // Преобразование координат
-  void AxisMove(Coordinate *currient_coordinate, Coordinate new_coordinate, char AxisNum); // Перемещение по одной оси
-  void ScanMove(char AxisNum); // Пошаговое перемещение по оси Z во время сканирования
-  void Approach(); // Подведение к образцу;
-  int GetPosition(char axis); // Вывод положения
+  inline void Move(Coordinate TargetPosition[]); // Перемещение в новыю точку
+  inline void CoordinateTransformation(); // Преобразование координат
+  inline void AxisMove(Coordinate *currient_coordinate, Coordinate new_coordinate, char AxisNum); // Перемещение по одной оси
+  inline void ScanMove(char AxisNum); // Пошаговое перемещение по оси Z во время сканирования
+  inline void Approach(); // Подведение к образцу;
+  inline int GetPosition(char axis); // Вывод положения
   void StepMoversInitialization(); // Инициализация как системы шаговых двигателей
   void PiezoMoverInitialization(); // Инициализация как системы пьезокерамики
 };
@@ -38,23 +38,24 @@ void CoordinateTransformation()
 {
 };
 
-void Carriage::Move(int TargetPosition[]) {
-  if ((Position[X] != TargetPosition[X]) // Проверка необходимости перемещания головки
-  or ( Position[Y] != TargetPosition[Y])) {
-    AxisMove (&Position[Z], SAFE_HEIGHT, Z); // Поднятие острия для безопасного перемещания
+void Carriage::Move(Coordinate TargetPosition[]) {
+  if ((Location.X != TargetPosition[X]) // Проверка необходимости перемещания головки
+  or ( Location.Y != TargetPosition[Y])) {
+    AxisMove (&Location.Z, SAFE_HEIGHT, Z); // Поднятие острия для безопасного перемещания
   }; 
-  for (char i = 0; i < sizeof(Position) / sizeof(Position[0]); i++)
+  for (char i = 0; i < sizeof(Location) / sizeof(Location.X); i++)
   {
-    if (Position[i] != TargetPosition[i]) {
-      AxisMove (&Position[i], TargetPosition[i], i); 
+    if (Location.Coordinates[i] != TargetPosition[i]) {
+      AxisMove (&Location.Coordinates[i], TargetPosition[i], i); 
     }; 
   }; 
 };
 
 void Carriage::ScanMove(char AxisNum) {
-  AxisMove (&Position[AxisNum], Position[AxisNum] + 1, AxisNum); 
+  AxisMove (&Location.Coordinates[AxisNum], Location.Coordinates[AxisNum] + 1, AxisNum); 
 }; 
 
-int Carriage::GetPosition(char axis) {
-  return Position[axis];
+int Carriage::GetPosition(char Axis) {
+  return Location.Coordinates[Axis];
 };
+
