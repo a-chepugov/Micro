@@ -1,3 +1,6 @@
+#ifndef System_h
+#define System_h
+
 #define STATE_PREFIX_IDLE_STANDING '3Z'  // Сигнализация простоя
 #define STATE_PREFIX_WORKING 'wW'  // Сигнализация работы
 #define STATE_PREFIX_OUTPUT_RESULT 'rR' // Сигнализация выдачи результата
@@ -18,6 +21,7 @@ enum SystemPropertiesNames
 
 union SystemData // Структура координаты
 {
+
   struct
   {
     short int State; // Состояние системы
@@ -29,6 +33,7 @@ union SystemData // Структура координаты
   SystemData();
   char & operator[](char Item);
   inline char CharsLength(); // Размер Данных команды
+  inline char GetErrorSymbol(); // Получение статуса ошибки  
 };
 
 SystemData::SystemData()
@@ -58,45 +63,16 @@ char SystemData::CharsLength()
   return sizeof(*this) / sizeof(Chars[0]);
 };
 
-class SystemItem { // Структура состояния системы
-private:
-  SystemData Values;
-public:
-  inline void SetState(char state); // Установка статуса
-  inline char GetState(); // Получение статуса
-  inline void SetError(char ErrorNum);  // Установка статуса ошибки
-  inline bool GetError(char ErrorNum); // Получение статуса ошибки
-  inline char GetErrorSymbol(); // Получение статуса ошибки  
-  inline void SetProrerties();
-  inline char GetProrerties();
-};
-
-void SystemItem::SetState(char NewState) {
-  Values.State = NewState;
-};
-
-char SystemItem::GetState() {
-  return Values.State;
-};
-
-void SystemItem::SetError(char ErrorNum) {
-    Values.Errors[ErrorNum] = true;
-};
-
-bool SystemItem::GetError(char ErrorNum) {
-    return Values.Errors[ErrorNum];
-};
-
-char SystemItem::GetErrorSymbol()
+char SystemData::GetErrorSymbol()
 {
   char ErrorSymbol = 0;
   for (char i = 0; i < COUNT_OF_ERRORS; i++)
   {
-    ErrorSymbol = ErrorSymbol + Values.Errors[i] * (i^2);
+    ErrorSymbol = ErrorSymbol + Errors[i] * (i^2);
   };
   ErrorSymbol = ErrorSymbol + '!';
   return ErrorSymbol;
 };
 
-
+#endif
 

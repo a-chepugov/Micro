@@ -1,3 +1,6 @@
+#ifndef Carriage_StepMotor_h
+#define Carriage_StepMotor_h
+
 #define STEPPER_X_PIN_1 2 // Контакт 1 для управления головкий по X
 #define STEPPER_X_PIN_2 3 // Контакт 2 для управления головкий по X
 #define STEPPER_X_PIN_3 4 // Контакт 3 для управления головкий по X
@@ -33,3 +36,5 @@ void Carriage::StepMoversInitialization()
   (*(Stepper *)Movers[Y]).setSpeed(STEPPER_Y_SPEED); // Установка скорости двигателя Y
   (*(Stepper *)Movers[Z]).setSpeed(STEPPER_Z_SPEED); // Установка скорости двигателя Z
 };
+
+#endif

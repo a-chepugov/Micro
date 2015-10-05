@@ -1,3 +1,6 @@
+#ifndef Command_h
+#define Command_h
+
 #define COMMAND_PREFIX "i" // Команда начала работы
 #define COMMAND_PREFIX_MOVE 'MM' // Код команды операции для туннельного сканирования
 #define COMMAND_PREFIX_SCANNING 'TT' // Код команды операции для туннельного сканирования
@@ -5,7 +8,7 @@
 #define COMMAND_PREFIX_INDENTATION 'PP' // Код команды операции индентирования
 #define COMMAND_PREFIX_CALIBRATION 'CC' // Код команды операции перекалибровки устройства
 
-void exit();
+void abort(int i);
 
 enum CommandParametersNames // Перечень входящих параметров
 {
@@ -76,3 +79,4 @@ bool CommandData::CheckCSum()
   };
 };
 
+#endif

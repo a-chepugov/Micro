@@ -1,37 +1,4 @@
-template <typename T, size_t N>
-char (&ArraySizeHelper(T (&array)[N]))[N];
-#define arraylength(array) (sizeof(ArraySizeHelper(array)))
-
-template <typename TTypeName, char TArrayLength> struct DataArray
-{
-  TTypeName Array[TArrayLength];
-
-  inline TTypeName & operator[](char Item)
-  {
-    if (Item >= 0 && Item < TArrayLength )
-    {
-      return Array[Item];
-    }
-    else
-    {
-      ::abort();
-    };
-  };
-
-  inline int Length()
-  {
-    return arraylength(Array);
-  };
-};
-
-#include <Stepper.h>
-#include "Coordinates.h"
-#include "Sensors.h"
-#include "Command.h"
-#include "System.h"
-#include "Carriage.h"
-#include "Carriage_StepMotor.h"
-#include "Carriage_Piezo.h"
+// Разработать переносимую модель данных (набор функции для доступа и обработки данных)
 
 void abort(int ErrorNum)
 {
@@ -47,9 +14,18 @@ void abort(int ErrorNum)
   abort();
 };
 
+#include <Stepper.h>
+#include "SharedData.h"
+#include "Coordinates.h"
+#include "Sensors.h"
+#include "Command.h"
+#include "System.h"
+#include "Carriage.h"
+#include "Carriage_Piezo.h"
+#include "Carriage_StepMotor.h"
+
 void print(char * str, char stat = '@'); 
 unsigned long checktime(unsigned long starttime = 0); 
-
 
 //===================================================================================================
 
@@ -70,7 +46,7 @@ void Carriage::AxisMove(char AxisNum, Coordinate & currient_coordinate, Coordina
 
 //===================================================================================================
 
-SensorsItem::SensorsItem()
+SensorsSystemData::SensorsSystemData()
 {
   pinMode(PIN_SENSOR_TIP, INPUT); // Установка режима чтения контактов сенсора острия
   pinMode(PIN_SENSOR_Ptip, INPUT); // Установка режима чтения контактов сенсора давления
@@ -79,7 +55,7 @@ SensorsItem::SensorsItem()
   pinMode(PIN_SENSOR_VIBRATION, INPUT); // Установка режима чтения контактов сенсора вибрации
 };
 
-void SensorsItem::GetSensorsValue() {
+void SensorsSystemData::GetSensorsValue() {
   SensorsDataReset();
   SensorsValue[Itip].Fx = analogRead(PIN_SENSOR_TIP);
   SensorsValue[Ptip].Fx = analogRead(PIN_SENSOR_Ptip);
@@ -91,12 +67,10 @@ void SensorsItem::GetSensorsValue() {
 //===================================================================================================
 
 class MasterRecord {
-public:
-  SystemItem System; // Системные данные
+  SystemData System; // Системные данные
   CommandData Command; // Данные команды
-  SensorsItem Sensors; // Данные сенсоров
+  SensorsSystemData Sensors; // Данные сенсоров
   DataArray < Carriage, 2 > Carriages; // Массив суппортов
-
 public:
   MasterRecord();
   inline void Processing(); // Ожидание команды
@@ -127,16 +101,16 @@ void MasterRecord::Processing() {
   unsigned long time = checktime(0); // Функция рассчета затраченого времени  
   Sensors.GetSensorsValue();
   if (Serial.find(COMMAND_PREFIX)) {
-    System.SetState(STATE_PREFIX_WORKING);
+    System.State = STATE_PREFIX_WORKING;
     ReadCommand();
     CheckCommand();
-    if ( !System.GetError(BadCommand) or true) {
+    if ( !System.Errors[BadCommand] or true) {
       ExecuteCommand();
       SystemData();
     };
   }
   else {
-    System.SetState(STATE_PREFIX_IDLE_STANDING);
+    System.State = STATE_PREFIX_IDLE_STANDING ;
     PrintSystemIdle();
   };
   checktime(time); // Функция рассчета затраченого времени  
@@ -149,7 +123,7 @@ void MasterRecord::ReadCommand() {
 void MasterRecord::CheckCommand() {
   if(!Command.CheckCSum()) 
   {
-    System.SetError(BadCommand);
+    System.Errors[BadCommand];
   };
 };
 
@@ -225,7 +199,7 @@ void MasterRecord::ExecuteCommand() {
     PrintFullResult();
     break;
   default:
-    System.SetState(STATE_PREFIX_IDLE_STANDING); 
+    System.State = STATE_PREFIX_IDLE_STANDING;
   };
   //  print ("ExecuteCommand end");
 };
@@ -273,10 +247,10 @@ void MasterRecord::PointPricking(){
 void MasterRecord::PrintResult() { // Вывод данных операции
   //  print ("PrintResult start");
   print ("-----------------------------------------------------------------------------------------------------",'[');
-  System.SetState (STATE_PREFIX_OUTPUT_RESULT);
+  System.State = STATE_PREFIX_OUTPUT_RESULT;
 
   Serial.print("\nScanState  : ");
-  Serial.print(System.GetState());
+  Serial.print(System.State);
   Serial.print("\nError      : ");
   Serial.print(System.GetErrorSymbol());
   Serial.print("\nCommand    : ");
@@ -330,7 +304,7 @@ void MasterRecord::PrintFullResult() {
     };
   };
   TempSensorData = 0;
-  System.SetState (STATE_PREFIX_OUTPUT_RESULT);
+  System.State = STATE_PREFIX_OUTPUT_RESULT;
   //  print ("PrintFullResult end");
 };
 
@@ -353,7 +327,7 @@ void MasterRecord::PrintSystemIdle() {
     };
   };
   TempSensorData = 0;
-  System.SetState (STATE_PREFIX_OUTPUT_RESULT);
+  System.State = STATE_PREFIX_OUTPUT_RESULT;
 };
 
 MasterRecord System = MasterRecord(); // Объявление Объекта для работы с данными
@@ -398,5 +372,6 @@ void print(char * str, char stat)
     Serial.print(str); 
     Serial.print("\n"); 
     break; 
-  }; 
+  };
 };
+

@@ -1,17 +1,47 @@
-void exit();
+#ifndef Coordinates_h
+#define Coordinates_h
 
 enum Axles
 {
   X, Y, Z // Синонимы для осей
 };
 
-enum 
+union DecartCoordinates2 // Структура координаты
 {
-  ScanStart, ScanEnd  // Синонимы положения
+private:
+  struct
+  {
+    //    Coordinate X, Y, Z;
+  };
+  DataArray < Coordinate, 3 > Position_;
+  char Chars[];
+public:
+  DecartCoordinates2();
+  DecartCoordinates2(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
+  char & operator[](unsigned char  Item);
+  inline char CharsLength();
+
+  Coordinate & Position(char &PositionNum)
+  {
+    return Position_[PositionNum];
+  };
+
+  Coordinate & X()
+  {
+    return Position_[::X];
+  };
+
+  Coordinate & Y()
+  {
+    return Position_[::Y];
+  };
+
+  Coordinate & Z()
+  {
+    return Position_[::Z];
+  };
+
 };
-
-typedef short int Coordinate; // Тип переменной для хранения координаты
-
 
 union DecartCoordinates // Структура координаты
 {
@@ -24,13 +54,13 @@ union DecartCoordinates // Структура координаты
 
   DecartCoordinates();
   DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordinate TempZ);
-  char & operator[](char Item);
-  inline char CharsLength();  
+  char & operator[](unsigned char  Item);
+  inline char CharsLength();
 };
 
 DecartCoordinates::DecartCoordinates()
 {
-  for(char i = 0; i < sizeof(*this); i++)
+  for(unsigned char i = 0; i < sizeof(*this); i++)
   {
     this->Chars[i] = '!';
   };
@@ -43,11 +73,11 @@ DecartCoordinates::DecartCoordinates(Coordinate TempX, Coordinate TempY, Coordin
   Z = TempZ;
 };
 
-char & DecartCoordinates::operator[](char Item)
+char & DecartCoordinates::operator[](unsigned char Item)
 {
-  if (Item >= 0 && Item < CharsLength() )
+  if (Item >= 0 and Item < CharsLength() )
   {
-  return Chars[Item];
+    return Chars[Item];
   }
   else
   {
@@ -59,3 +89,6 @@ char DecartCoordinates::CharsLength()
 {
   return sizeof(*this) / sizeof(Chars[0]);
 };
+
+#endif
+

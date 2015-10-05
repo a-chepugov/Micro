@@ -1,3 +1,6 @@
+#ifndef Carriage_Piezo_h
+#define Carriage_Piezo_h
+
 #define PIN_TIP_X 20 // Контакт для управления острием по X
 #define PIN_TIP_Y 21 // Контакт для управления острием по Y
 #define PIN_TIP_Z 22 // Контакт для управления острием по Z
@@ -28,3 +31,5 @@ Piezo Piezos[] = {
       Movers[i] =  (Piezo *) &Piezos[i];
     };
   };
+  
+  #endif

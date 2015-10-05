@@ -1,3 +1,6 @@
+#ifndef Carriage_h
+#define Carriage_h
+
 #define SAFE_HEIGHT 8000
 #define MOVERS_SYSTEM 4
 
@@ -58,3 +61,6 @@ void Carriage::ScanMove(char AxisNum) {
 Coordinate Carriage::GetPosition(char Axis) {
   return Location.Position[Axis];
 };
+
+
+#endif
